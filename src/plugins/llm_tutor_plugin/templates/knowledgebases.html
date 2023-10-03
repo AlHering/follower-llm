@@ -1,0 +1,34 @@
+{% extends "navigated_base.html" %}
+{% block content %}
+
+<link rel="stylesheet" href="{{ url_for('llm_tutor.static', filename='style.css') }}">
+<section class="kbs">
+        <table id="kbs">
+            <thead>
+                <tr>
+                    {% for column in entries_columns %}
+                    <th scope="col">column</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+        </table>
+    <form class="kbs-inputarea" action="/llm_tutor/knowledgebases" method="post">
+        <input type="text" class="kbs-input" name="name" placeholder="Knowledgebase name">
+        <input type="persistant-path" class="kbs-input" webkitdirectory="true" directory/>
+        <select name="handler">
+            <option value="#default" selected="true">Default</option>
+        </select>
+        <textarea class="kbs-input" name="metadata" placeholder="{}">
+        <select name="Embedding Function">
+            <option value="#default" selected="true">Default</option>
+        </select>
+        <select name="implementation">
+            <option value="#default" selected="true">Default</option>
+        </select>
+        <button type="submit" class="kbs-post-btn">Create</button>
+    </form>
+
+    <script type="text/javascript" class="init"> {{ entries_fetching_script }} </script>
+</section>
+
+{% endblock content %}
