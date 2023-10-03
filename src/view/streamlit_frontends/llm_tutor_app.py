@@ -36,7 +36,7 @@ def run_page() -> None:
     """
     Function for running the main page.
     """
-    st.title("LLM Tutor")
+    st.title("LLM Follower")
     st.header("")
 
     if "KB" not in st.session_state:
@@ -92,7 +92,7 @@ def run_app() -> None:
     Main runner function.
     """
     st.set_page_config(
-        page_title="LLM Tutor",
+        page_title="LLM Follower",
         page_icon=":books:"
     )
     if os.path.exists(cfg.PATHS.MODEL_CONTROL_FRONTEND_CACHE):
