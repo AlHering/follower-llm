@@ -18,8 +18,8 @@ from src.control.backend_controller import BackendController
 """
 Backend control
 """
-BACKEND = FastAPI(title="LLM Tutor Backend", version="0.1",
-                  description="Backend for serving LLM Tutor services.")
+BACKEND = FastAPI(title="LLM Follower Backend", version="0.1",
+                  description="Backend for serving LLM Follower services.")
 CONTROLLER: BackendController = BackendController()
 
 
