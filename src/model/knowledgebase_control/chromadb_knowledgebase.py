@@ -97,7 +97,20 @@ class ChromaKnowledgeBase(KnowledgeBase):
         )
 
     # Override
-    def embed_documents(self, documents: List[Document], metadatas: List[dict] = None, ids: List[str] = None, collection: str = "base", compute_metadata: bool = False) -> None:
+    def retrieve_documents(self, query: str, collection: str, metadata_constraints: dict = None, search_type: str = "similarity", search_kwargs: dict = {"k": 4, "include_metadata": True}) -> List[Document]:
+        """
+        Method for acquiring documents.
+        :param query: Retrieval query.
+        :param metadata_constraints: Metadata constraints.
+        :param collection: Collection to use.
+        :param search_type: The retriever's search type. Defaults to "similarity".
+        :param search_kwargs: The retrievery search keyword arguments. Defaults to {"k": 4, "include_metadata": True}.
+        :return: Retrieved documents.
+        """
+        pass
+
+    # Override
+    def embed_documents(self, documents: List[Document], metadatas: List[dict] = None, ids: List[str] = None, collection: str = "base", compute_additional_metadata: bool = False) -> None:
         """
         Method for embedding documents.
         :param documents: Documents to embed.
@@ -107,15 +120,15 @@ class ChromaKnowledgeBase(KnowledgeBase):
             Defaults to the hash of the document contents.
         :param collection: Collection to use.
             Defaults to "base".
-        :param compute_metadata: Flag for declaring, whether to compute metadata.
+        :param compute_additional_metadata: Flag for declaring, whether to compute additional metadata.
             Defaults to False.
         """
         if metadatas is None:
             metadatas = [{} for _ in documents]
-        if compute_metadata:
+        if compute_additional_metadata:
             for doc_index, doc_content in enumerate(documents):
                 metadatas[doc_index] = metadatas[doc_index].update(
-                    self.compute_metadata(doc_content, collection))
+                    self.compute_additional_metadata(doc_content, collection))
 
         self.collections[collection].add_documents(documents=documents, metadatas=metadatas, ids=[
             hash_text_with_sha256(document.page_content) for document in documents] if ids is None else ids)
