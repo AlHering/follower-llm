@@ -35,11 +35,11 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
                     comment="ID of the User.")
         email = Column(String, nullable=False, unique=True,
                        comment="User email.")
-        password_hash = Column(String, nullable=False
-                       comment="User password hash.")
+        password_hash = Column(String, nullable=False,
+                               comment="User password hash.")
         config = Column(JSON, nullable=False,
                         comment="User configuration.")
-        
+
         created = Column(DateTime, server_default=func.now(),
                          comment="Timestamp of creation.")
         updated = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
@@ -99,9 +99,9 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
         path = Column(String, nullable=False,
                       comment="Path of the file.")
         encoding = Column(String, nullable=False,
-                      comment="Encoding of the file.")
+                          comment="Encoding of the file.")
         extension = Column(String, nullable=False,
-                      comment="Extension of the file.")
+                           comment="Extension of the file.")
         url = Column(String,
                      comment="URL for the file.")
         source = Column(String,
@@ -119,7 +119,7 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
             Integer, ForeignKey(f"{schema}asset.id"))
         asset = relationship(
             "Asset", back_populates="files")
-        
+
     class Config(base):
         """
         Config class, representing a config.
@@ -133,7 +133,7 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
         type = Column(String, nullable=False,
                       comment="Target object type of the file.")
         config = Column(JSON, nullable=False,
-                        
+
                         comment="Object configuration.")
         created = Column(DateTime, server_default=func.now(),
                          comment="Timestamp of creation.")
@@ -146,7 +146,7 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
             Integer, ForeignKey(f"{schema}user.id"))
         owner = relationship(
             "User", back_populates="configs")
-        
+
     class Access(base):
         """
         Access class, representing access rights.
@@ -160,11 +160,11 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
         type = Column(String, nullable=False,
                       comment="Target object type.")
         target_id = Column(Integer, nullable=False,
-                    comment="ID of the target object.")
+                           comment="ID of the target object.")
         user_id = Column(Integer, nullable=False,
-                    comment="ID of the user.")
+                         comment="ID of the user.")
         level = Column(Integer, nullable=False, default=0,
-                    comment="Access level.")
+                       comment="Access level.")
 
         created = Column(DateTime, server_default=func.now(),
                          comment="Timestamp of creation.")
