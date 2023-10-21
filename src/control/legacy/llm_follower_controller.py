@@ -13,7 +13,7 @@ from src.configuration import configuration as cfg
 from src.utility.gold.basic_sqlalchemy_interface import BasicSQLAlchemyInterface
 from src.utility.bronze import sqlalchemy_utility
 from src.utility.bronze.hashing_utility import hash_text_with_sha256
-from src.model.database_control.data_model import populate_data_instrastructure
+from src.model.database_control.legacy.data_model import populate_data_instrastructure
 from src.model.ml_model_control.llm_pool import ThreadedLLMPool
 from langchain.chains import RetrievalQA
 from src.utility.silver import embedding_utility

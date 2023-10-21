@@ -13,7 +13,7 @@ from fastapi import FastAPI, File, UploadFile
 from pydantic import BaseModel
 from functools import wraps
 from src.configuration import configuration as cfg
-from src.control.backend_controller import BackendController
+from src.control.legacy.backend_controller import BackendController
 
 """
 Backend control
