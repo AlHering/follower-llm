@@ -23,26 +23,23 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
         schema += "."
     base = declarative_base()
 
-    class Knowledgebase(base):
+    class User(base):
         """
-        Knowledgebase class, representing an knowledge base config..
+        User class, representing an user.
         """
-        __tablename__ = f"{schema}knowledgebase"
+        __tablename__ = f"{schema}user"
         __table_args__ = {
-            "comment": "Knowledgebase table.", "extend_existing": True}
+            "comment": "User table.", "extend_existing": True}
 
         id = Column(Integer, primary_key=True, unique=True, nullable=False, autoincrement=True,
-                    comment="ID of the knowledgebase.")
-        persistant_directory = Column(String, nullable=False,
-                                      comment="Knowledgebase persistant directory.")
-        document_directory = Column(String, nullable=False,
-                                    comment="Knowledgebase document directory.")
-        handler = Column(String, nullable=False, default="chromadb",
-                         comment="Knowledgebase handler.")
-        implementation = Column(String, nullable=False, default="duckdb+parquet",
-                                comment="Handler implementation.")
-
-        meta_data = Column(JSON, comment="Knowledgebase metadata.")
+                    comment="ID of the User.")
+        email = Column(String, nullable=False, unique=True,
+                       comment="User email.")
+        password_hash = Column(String, nullable=False
+                       comment="User password hash.")
+        config = Column(JSON, nullable=False,
+                        comment="User configuration.")
+        
         created = Column(DateTime, server_default=func.now(),
                          comment="Timestamp of creation.")
         updated = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
@@ -50,24 +47,67 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
         inactive = Column(Boolean, nullable=False, default=False,
                           comment="Inactivity flag.")
 
-        documents = relationship(
-            "Document", back_populates="knowledgebase")
-        embedding_instance_id = mapped_column(
-            Integer, ForeignKey(f"{schema}modelinstance.id"))
-        embedding_instance = relationship("Modelinstance")
+        assets = relationship(
+            "Asset", back_populates="owner")
+        configs = relationship(
+            "Config", back_populates="owner")
+        granted = relationship(
+            "Access", back_populates="granter")
 
-    class Document(base):
+    class Asset(base):
         """
-        Document class, representing an document.
+        Asset class, representing an asset.
+        """
+        __tablename__ = f"{schema}asset"
+        __table_args__ = {
+            "comment": "Asset table.", "extend_existing": True}
+
+        id = Column(Integer, primary_key=True, unique=True, nullable=False, autoincrement=True,
+                    comment="ID of the asset.")
+        url = Column(String,
+                     comment="URL for the asset.")
+        source = Column(String,
+                        comment="Main metadata source for the asset.")
+        sha256 = Column(Text,
+                        comment="SHA256 hash for the asset.")
+        meta_data = Column(JSON,
+                           comment="Metadata of the asset.")
+        created = Column(DateTime, server_default=func.now(),
+                         comment="Timestamp of creation.")
+        updated = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
+                         comment="Timestamp of last update.")
+        inactive = Column(Boolean, nullable=False, default=False,
+                          comment="Inactivity flag.")
+
+        files = relationship(
+            "File", back_populates="asset")
+        owner_id = mapped_column(
+            Integer, ForeignKey(f"{schema}user.id"))
+        owner = relationship(
+            "User", back_populates="assets")
+
+    class File(base):
+        """
+        File class, representing a file.
         """
         __tablename__ = f"{schema}document"
         __table_args__ = {
-            "comment": "Document table.", "extend_existing": True}
+            "comment": "File table.", "extend_existing": True}
 
         id = Column(Integer, primary_key=True, unique=True, nullable=False, autoincrement=True,
-                    comment="ID of the document.")
-        content = Column(JSON, nullable=False,
-                         comment="Document content.")
+                    comment="ID of the file.")
+        path = Column(String, nullable=False,
+                      comment="Path of the file.")
+        encoding = Column(String, nullable=False,
+                      comment="Encoding of the file.")
+        extension = Column(String, nullable=False,
+                      comment="Extension of the file.")
+        url = Column(String,
+                     comment="URL for the file.")
+        source = Column(String,
+                        comment="Main metadata source for the file.")
+        sha256 = Column(Text,
+                        comment="SHA256 hash for the file.")
         created = Column(DateTime, server_default=func.now(),
                          comment="Timestamp of creation.")
         updated = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
@@ -75,41 +115,72 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
         inactive = Column(Boolean, nullable=False, default=False,
                           comment="Inactivity flag.")
 
-        knowledgebase_id = mapped_column(
-            Integer, ForeignKey(f"{schema}knowledgebase.id"))
-        knowledgebase = relationship(
-            "Knowledgebase", back_populates="documents")
-
-    class Modelinstance(base):
+        asset_id = mapped_column(
+            Integer, ForeignKey(f"{schema}asset.id"))
+        asset = relationship(
+            "Asset", back_populates="files")
+        
+    class Config(base):
         """
-        Modelinstance class, representing a machine learning model (version) instance.
+        Config class, representing a config.
         """
-        __tablename__ = f"{schema}modelinstance"
+        __tablename__ = f"{schema}config"
         __table_args__ = {
-            "comment": "Model instance table.", "extend_existing": True}
+            "comment": "Config table.", "extend_existing": True}
 
         id = Column(Integer, primary_key=True, unique=True, nullable=False, autoincrement=True,
-                    comment="ID of the modelinstance.")
-        backend = Column(String, nullable=False,
-                         comment="Backend of the model instance.")
-        loader = Column(String,
-                        comment="Loader for the model instance.")
-        loader_kwargs = Column(JSON,
-                               comment="Additional loading keyword arguments.")
-        gateway = Column(String,
-                         comment="Gateway for instance interaction.")
-        meta_data = Column(JSON,
-                           comment="Metadata of the model instance.")
+                    comment="ID of the config.")
+        type = Column(String, nullable=False,
+                      comment="Target object type of the file.")
+        config = Column(JSON, nullable=False,
+                        
+                        comment="Object configuration.")
         created = Column(DateTime, server_default=func.now(),
                          comment="Timestamp of creation.")
         updated = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
                          comment="Timestamp of last update.")
         inactive = Column(Boolean, nullable=False, default=False,
                           comment="Inactivity flag.")
+
+        owner_id = mapped_column(
+            Integer, ForeignKey(f"{schema}user.id"))
+        owner = relationship(
+            "User", back_populates="configs")
+        
+    class Access(base):
+        """
+        Access class, representing access rights.
+        """
+        __tablename__ = f"{schema}config"
+        __table_args__ = {
+            "comment": "Access table.", "extend_existing": True}
+
+        id = Column(Integer, primary_key=True, unique=True, nullable=False, autoincrement=True,
+                    comment="ID of the access.")
+        type = Column(String, nullable=False,
+                      comment="Target object type.")
+        target_id = Column(Integer, nullable=False,
+                    comment="ID of the target object.")
+        user_id = Column(Integer, nullable=False,
+                    comment="ID of the user.")
+        level = Column(Integer, nullable=False, default=0
+                    comment="Access level.")
+
+        created = Column(DateTime, server_default=func.now(),
+                         comment="Timestamp of creation.")
+        updated = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
+                         comment="Timestamp of last update.")
+        inactive = Column(Boolean, nullable=False, default=False,
+                          comment="Inactivity flag.")
+
+        granter_id = mapped_column(
+            Integer, ForeignKey(f"{schema}user.id"))
+        granter = relationship(
+            "User", back_populates="granted")
 
     class Log(base):
         """
-        Log class, representing an log entry, connected to a machine learning model or model version interaction.
+        Log class, representing an log entry.
         """
         __tablename__ = f"{schema}log"
         __table_args__ = {
@@ -125,7 +196,7 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
         responded = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
                            comment="Timestamp of reponse transmission.")
 
-    for dataclass in [Knowledgebase, Document, Modelinstance, Log]:
+    for dataclass in [User, Asset, File, Config, Access, Log]:
         model[dataclass.__tablename__.replace(schema, "")] = dataclass
 
     base.metadata.create_all(bind=engine)
