@@ -182,88 +182,84 @@ class LLMFollowerController(BasicSQLAlchemyInterface):
     Knowledgebase handling methods
     """
 
-    def embed_via_instance(self, instance_id: Union[str, int], documents: List[str]) -> List[Any]:
+    def embed_via_instance(self, config_id: Union[str, int], documents: List[str]) -> List[Any]:
         """
         Wrapper method for embedding via instance.
-        :param instance_id: LLM instance ID.
+        :param config_id: LLM config ID.
         :param documents: List of documents to embed.
         :return: List of embeddings.
         """
         embeddings = []
         for document in documents:
-            embeddings.append(self.forward_generate(instance_id, document))
+            embeddings.append(self.forward_generate(config_id, document))
         return embeddings
 
-    def register_knowledgebase(self, kb_id: Union[str, int], handler: str, persistant_directory: str,  metadata: dict = None, embedding_instance_id: Union[str, int] = None, implementation: str = None) -> str:
+    def register_knowledgebase(self, kb_config_id: Union[str, int], embedding_config_id: Union[str, int]) -> str:
         """
         Method for registering knowledgebase.
-        :param kb_id: Knowledgebase ID.
-        :param handler: Knowledgebase handler.
-        :param persistant_directory: Knowledgebase persistant directory.
-        :param metadata: Knowledgebase metadata.
-        :param embedding_instance: Embedding instance ID.
-        :param implementation: Knowledgebase implementation.
-        :return: Knowledgebase ID.
+        :param kb_config_id: Config ID for the knowledgebase.
+        :param embedding_config_id: Config ID for the embedding model.
+        :return: Config ID.
         """
-        kb_id = str(kb_id)
-        embedding_instance_id = str(embedding_instance_id)
+        kb_config_id = str(kb_config_id)
+        kb_config = self.get_object("config", int(kb_config_id))
+        embedding_config_id = str(embedding_config_id)
 
-        self.load_instance(embedding_instance_id)
+        self.load_instance(embedding_config_id)
 
+        handler = kb_config.pop("handler")
         handler_kwargs = {
-            "peristant_directory": persistant_directory,
-            "metadata": metadata,
-            "base_embedding_function": None if embedding_instance_id is None else lambda x: self.embed_via_instance(embedding_instance_id, x),
-            "implementation": implementation
+            "peristant_directory": kb_config.pop("peristant_directory"),
+            "metadata": kb_config.pop("metadata"),
+            "base_embedding_function": None if embedding_config_id is None else lambda x: self.embed_via_instance(embedding_config_id, x),
+            "implementation": kb_config.pop("implementation")
         }
 
-        self.kbs[kb_id] = {"chromadb": ChromaKnowledgeBase}[handler](
+        self.kbs[kb_config_id] = {"chromadb": ChromaKnowledgeBase}[handler](
             **handler_kwargs
         )
-        return kb_id
+        return kb_config_id
 
-    def create_default_knowledgebase(self, uuid: str) -> int:
+    def create_default_knowledgebase(self, sub_path: str) -> int:
         """
         Method for creating default knowledgebase.
-        :param uuid: UUID to locate knowledgebase under.
-        :return: Knowledgebase ID.
+        :param sub_path: Sub path to locate knowledgebase under.
+        :return: Knowledgebase config ID.
         """
         kb_id = self.post_object("knowledgebase",
-                                 persistant_directory=os.path.join(self.knowledgebase_directory, uuid))
-        kb = self.get_object_by_id("knowledgebase", kb_id)
-        self.register_knowledgebase(
-            kb.id, kb.handler, kb.persistant_directory, kb.meta_data, kb.embedding_instance_id, kb.implementation
-        )
+                                 persistant_directory=os.path.join(self.knowledgebase_directory, sub_path))
+        self.register_knowledgebase(kb_id)
 
-    def delete_documents(self, kb: str, document_ids: List[Any], collection: str = "base") -> None:
+    def delete_documents(self, kb_config_id: Union[str, int], document_ids: List[Any], collection: str = "base") -> None:
         """
         Method for deleting a document from the knowledgebase.
-        :param kb: Target knowledgebase.
+        :param kb_config_id: Config ID for the knowledgebase.
         :param document_ids: Document IDs.
         :param collection: Collection to remove document from.
         """
         for document_id in document_ids:
-            self.kbs[kb].delete_document(document_id, collection)
+            self.kbs[str(kb_config_id)].delete_document(
+                document_id, collection)
 
-    def wipe_knowledgebase(self, target_kb: str) -> None:
+    def wipe_knowledgebase(self, kb_config_id: Union[str, int]) -> None:
         """
         Method for wiping a knowledgebase.
-        :param target_kb: Target knowledgebase.
+        :param kb_config_id: Config ID for the knowledgebase.
         """
-        self.kbs[target_kb].wipe_knowledgebase()
+        self.kbs[str(kb_config_id)].wipe_knowledgebase()
 
-    def migrate_knowledgebase(self, source_kb: str, target_kb: str) -> None:
+    def migrate_knowledgebase(self, source_config_id: Union[str, int], target_config_id: Union[str, int]) -> None:
         """
         Method for migrating knowledgebase.
-        :param source_kb: Source knowledgebase.
-        :param target_kb: Target knowledgebase.
+        :param source_config_id: Config ID for the knowledgebase.
+        :param target_config_id: Config ID for the knowledgebase.
         """
         pass
 
-    def embed_documents(self, kb: str, documents: List[str], metadatas: List[dict] = None, ids: List[str] = None, hashes: List[str] = None, collection: str = "base", compute_metadata: bool = False) -> None:
+    def embed_documents(self, kb_config_id: Union[str, int], documents: List[str], metadatas: List[dict] = None, ids: List[str] = None, hashes: List[str] = None, collection: str = "base", compute_metadata: bool = False) -> None:
         """
         Method for embedding documents.
-        :param kb: Target knowledgebase.
+        :param kb_config_id: Config ID for the knowledgebase.
         :param documents: Documents to embed.
         :param metadatas: Metadata entries for documents.
             Defaults to None.
@@ -290,52 +286,12 @@ class LLMFollowerController(BasicSQLAlchemyInterface):
         if metadatas is None:
             metadatas = [self.documents[hash] for hash in hashes]
 
-        self.kbs[kb].embed_documents(
+        self.kbs[str(kb_config_id)].embed_documents(
             collection=collection, documents=documents, metadatas=metadatas, ids=hashes if ids is None else ids)
 
     """
     Custom methods
     """
-
-    def embed_document(self, kb_id: Union[int, str], document_content: str, document_metadata: dict = None) -> int:
-        """
-        Method for embedding document.
-        :param kb_id: Knowledgebase ID.
-        :param document_content: Document content.
-        :param document_metadata: Document metadata.
-            Defaults to None
-        :return: Document ID.
-        """
-        kb = self.get_object_by_id("knowledgebase", kb_id)
-        doc_id = self.post_object("document", {
-            "content": document_content,
-            "knowledgebase_id": kb.id
-        })
-        document_metadata = {} if document_metadata is None else document_metadata
-        document_metadata.update({
-            "hash": hash_text_with_sha256(document_content),
-            "kb_id": kb.id,
-        })
-
-        self.kb_controller.embed_documents(
-            str(kb.id), documents=[document_content],
-            metadatas=[document_metadata],
-            ids=[str(doc_id)],
-            hashes=[document_metadata["hash"]]
-        )
-        return doc_id
-
-    def delete_document_embeddings(self, document_id: int) -> int:
-        """
-        Method for deleting document embeddings.
-        :param document_id: Document ID.
-        :return: Document ID.
-        """
-        doc = self.get_object_by_id("document", document_id)
-        self.kb_controller.delete_documents(
-            str(doc.knowledgebase_id),
-            [str(doc.id)]
-        )
 
     def forward_document_qa(self, llm_id: Union[int, str], kb_id: Union[int, str], query: str, include_sources: bool = True) -> dict:
         """
