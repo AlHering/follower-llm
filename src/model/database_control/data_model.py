@@ -163,7 +163,7 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
                     comment="ID of the target object.")
         user_id = Column(Integer, nullable=False,
                     comment="ID of the user.")
-        level = Column(Integer, nullable=False, default=0
+        level = Column(Integer, nullable=False, default=0,
                     comment="Access level.")
 
         created = Column(DateTime, server_default=func.now(),
