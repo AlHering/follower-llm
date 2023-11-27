@@ -13,14 +13,14 @@ from fastapi import FastAPI, File, UploadFile
 from pydantic import BaseModel
 from functools import wraps
 from src.configuration import configuration as cfg
-from src.control.llm_follower_controller import LLMFollowerController
+from src.control.follower_llm_controller import FollowerLLMController
 
 """
 Backend control
 """
 BACKEND = FastAPI(title="LLM Follower Backend", version="0.1",
                   description="Backend for serving LLM Follower services.")
-CONTROLLER: LLMFollowerController = LLMFollowerController()
+CONTROLLER: FollowerLLMController = FollowerLLMController()
 
 
 def interface_function() -> Optional[Any]:

@@ -22,7 +22,7 @@ from src.utility.silver.file_system_utility import safely_create_path
 from src.model.knowledgebase_control.chromadb_knowledgebase import ChromaKnowledgeBase, KnowledgeBase
 
 
-class LLMFollowerController(BasicSQLAlchemyInterface):
+class FollowerLLMController(BasicSQLAlchemyInterface):
     """
     Controller class for handling backend interface requests.
     """
