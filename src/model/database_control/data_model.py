@@ -23,37 +23,6 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
         schema += "."
     base = declarative_base()
 
-    class User(base):
-        """
-        User class, representing an user.
-        """
-        __tablename__ = f"{schema}user"
-        __table_args__ = {
-            "comment": "User table.", "extend_existing": True}
-
-        id = Column(Integer, primary_key=True, unique=True, nullable=False, autoincrement=True,
-                    comment="ID of the User.")
-        email = Column(String, nullable=False, unique=True,
-                       comment="User email.")
-        password_hash = Column(String, nullable=False,
-                               comment="User password hash.")
-        config = Column(JSON, nullable=False,
-                        comment="User configuration.")
-
-        created = Column(DateTime, server_default=func.now(),
-                         comment="Timestamp of creation.")
-        updated = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
-                         comment="Timestamp of last update.")
-        inactive = Column(Boolean, nullable=False, default=False,
-                          comment="Inactivity flag.")
-
-        assets = relationship(
-            "Asset", back_populates="owner")
-        configs = relationship(
-            "Config", back_populates="owner")
-        granted = relationship(
-            "Access", back_populates="granter")
-
     class Source(base):
         """
         Source class, representing an source.
@@ -105,8 +74,10 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
 
         source_id = mapped_column(
             Integer, ForeignKey(f"{schema}source.id"))
-        asset = relationship(
+        source = relationship(
             "Source", back_populates="channels")
+        assets = relationship(
+            "Asset", back_populates="channel")
 
     class Asset(base):
         """
@@ -135,10 +106,10 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
 
         files = relationship(
             "File", back_populates="asset")
-        owner_id = mapped_column(
-            Integer, ForeignKey(f"{schema}user.id"))
-        owner = relationship(
-            "User", back_populates="assets")
+        channel_id = mapped_column(
+            Integer, ForeignKey(f"{schema}channel.id"))
+        channel = relationship(
+            "Channel", back_populates="assets")
 
     class File(base):
         """
@@ -173,6 +144,35 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
             Integer, ForeignKey(f"{schema}asset.id"))
         asset = relationship(
             "Asset", back_populates="files")
+
+    class User(base):
+        """
+        User class, representing an user.
+        """
+        __tablename__ = f"{schema}user"
+        __table_args__ = {
+            "comment": "User table.", "extend_existing": True}
+
+        id = Column(Integer, primary_key=True, unique=True, nullable=False, autoincrement=True,
+                    comment="ID of the User.")
+        email = Column(String, nullable=False, unique=True,
+                       comment="User email.")
+        password_hash = Column(String, nullable=False,
+                               comment="User password hash.")
+        config = Column(JSON, nullable=False,
+                        comment="User configuration.")
+
+        created = Column(DateTime, server_default=func.now(),
+                         comment="Timestamp of creation.")
+        updated = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
+                         comment="Timestamp of last update.")
+        inactive = Column(Boolean, nullable=False, default=False,
+                          comment="Inactivity flag.")
+
+        configs = relationship(
+            "Config", back_populates="owner")
+        granted = relationship(
+            "Access", back_populates="granter")
 
     class Config(base):
         """
@@ -250,7 +250,7 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
         responded = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
                            comment="Timestamp of reponse transmission.")
 
-    for dataclass in [User, Source, Channel, Asset, File, Config, Access, Log]:
+    for dataclass in [Source, Channel, Asset, File, User, Config, Access, Log]:
         model[dataclass.__tablename__.replace(schema, "")] = dataclass
 
     base.metadata.create_all(bind=engine)
