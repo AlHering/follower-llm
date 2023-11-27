@@ -77,6 +77,9 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
         inactive = Column(Boolean, nullable=False, default=False,
                           comment="Inactivity flag.")
 
+        channels = relationship(
+            "Channel", back_populates="source")
+
     class Channel(base):
         """
         Channel class, representing an channel.
@@ -99,6 +102,11 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
                          comment="Timestamp of last update.")
         inactive = Column(Boolean, nullable=False, default=False,
                           comment="Inactivity flag.")
+
+        source_id = mapped_column(
+            Integer, ForeignKey(f"{schema}source.id"))
+        asset = relationship(
+            "Source", back_populates="channels")
 
     class Asset(base):
         """
