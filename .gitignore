@@ -167,6 +167,7 @@ machine_learning_models/LORAS/*
 machine_learning_models/MODELS/*
 machine_learning_models/EMBEDDING_MODELS/*
 .desktop
+testbench*.py
 
 # Exceptions
 !machine_learning_models/LORAS/mount ML LoRAs here.txt
