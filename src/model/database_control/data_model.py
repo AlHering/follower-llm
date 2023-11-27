@@ -11,6 +11,18 @@ from uuid import uuid4, UUID
 from typing import Any
 
 
+def fix_schema(schema: str) -> str:
+    """
+    Function for fixing schema for populating infrastructure.
+    :param schema: Schema string.
+    :return: Fixed schema string.
+    """
+    schema = str(schema)
+    if not schema.endswith("."):
+        schema += "."
+    return schema
+
+
 def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> None:
     """
     Function for populating data infrastructure.
@@ -18,9 +30,7 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
     :param schema: Schema for tables.
     :param model: Model dictionary for holding data classes.
     """
-    schema = str(schema)
-    if not schema.endswith("."):
-        schema += "."
+    schema = fix_schema(schema)
     base = declarative_base()
 
     class Source(base):
