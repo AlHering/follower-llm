@@ -66,6 +66,31 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
                     comment="ID of the source.")
         url = Column(String,
                      comment="URL for the source.")
+        name = Column(String,
+                      comment="Display name for the source.")
+        scraping_metadata = Column(JSON,
+                                   comment="Metadata for scraping.")
+        created = Column(DateTime, server_default=func.now(),
+                         comment="Timestamp of creation.")
+        updated = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
+                         comment="Timestamp of last update.")
+        inactive = Column(Boolean, nullable=False, default=False,
+                          comment="Inactivity flag.")
+
+    class Channel(base):
+        """
+        Channel class, representing an channel.
+        """
+        __tablename__ = f"{schema}channel"
+        __table_args__ = {
+            "comment": "Channel table.", "extend_existing": True}
+
+        id = Column(Integer, primary_key=True, unique=True, nullable=False, autoincrement=True,
+                    comment="ID of the channel.")
+        url = Column(String,
+                     comment="URL for the channel.")
+        name = Column(String,
+                      comment="Display name for the channel.")
         scraping_metadata = Column(JSON,
                                    comment="Metadata for scraping.")
         created = Column(DateTime, server_default=func.now(),
@@ -217,7 +242,7 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
         responded = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
                            comment="Timestamp of reponse transmission.")
 
-    for dataclass in [User, Source, Asset, File, Config, Access, Log]:
+    for dataclass in [User, Source, Channel, Asset, File, Config, Access, Log]:
         model[dataclass.__tablename__.replace(schema, "")] = dataclass
 
     base.metadata.create_all(bind=engine)
