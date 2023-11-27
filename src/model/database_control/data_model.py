@@ -75,13 +75,6 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
         inactive = Column(Boolean, nullable=False, default=False,
                           comment="Inactivity flag.")
 
-        files = relationship(
-            "File", back_populates="asset")
-        owner_id = mapped_column(
-            Integer, ForeignKey(f"{schema}user.id"))
-        owner = relationship(
-            "User", back_populates="assets")
-
     class Asset(base):
         """
         Asset class, representing an asset.
