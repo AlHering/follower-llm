@@ -54,6 +54,34 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
         granted = relationship(
             "Access", back_populates="granter")
 
+    class Source(base):
+        """
+        Source class, representing an source.
+        """
+        __tablename__ = f"{schema}source"
+        __table_args__ = {
+            "comment": "Source table.", "extend_existing": True}
+
+        id = Column(Integer, primary_key=True, unique=True, nullable=False, autoincrement=True,
+                    comment="ID of the source.")
+        url = Column(String,
+                     comment="URL for the source.")
+        scraping_metadata = Column(JSON,
+                                   comment="Metadata for scraping.")
+        created = Column(DateTime, server_default=func.now(),
+                         comment="Timestamp of creation.")
+        updated = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
+                         comment="Timestamp of last update.")
+        inactive = Column(Boolean, nullable=False, default=False,
+                          comment="Inactivity flag.")
+
+        files = relationship(
+            "File", back_populates="asset")
+        owner_id = mapped_column(
+            Integer, ForeignKey(f"{schema}user.id"))
+        owner = relationship(
+            "User", back_populates="assets")
+
     class Asset(base):
         """
         Asset class, representing an asset.
@@ -196,7 +224,7 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
         responded = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
                            comment="Timestamp of reponse transmission.")
 
-    for dataclass in [User, Asset, File, Config, Access, Log]:
+    for dataclass in [User, Source, Asset, File, Config, Access, Log]:
         model[dataclass.__tablename__.replace(schema, "")] = dataclass
 
     base.metadata.create_all(bind=engine)
