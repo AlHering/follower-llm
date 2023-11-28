@@ -17,9 +17,9 @@ llama-cpp-python - GGML/GGUF run on CPU, offload layers to GPU, CUBLAS support (
 - CPU: llama-cpp-python==0.2.18
 - GPU: https://github.com/jllllll/llama-cpp-python-cuBLAS-wheels/releases/download/textgen-webui/llama_cpp_python_cuda-0.2.18+cu117-cp310-cp310-manylinux_2_31_x86_64.whl ; platform_system == "Linux" and platform_machine == "x86_64"
 
-exllama - 4-bit GPTQ weights, GPU inference (tested on newer GPUs > Pascal)
-- CPU: exllamav2==0.0.5
-- GPU: https://github.com/jllllll/exllamav2/releases/download/v0.0.5/exllamav2-0.0.5+cu117-cp310-cp310-linux_x86_64.whl; platform_system == "Linux" and platform_machine == "x86_64"
+exllamav2 - 4-bit GPTQ weights, GPU inference (tested on newer GPUs > Pascal)
+- CPU: exllamav2==0.0.9
+- GPU: https://github.com/jllllll/llama-cpp-python-cuBLAS-wheels/releases/download/textgen-webui/llama_cpp_python_cuda-0.2.18+cu117-cp310-cp310-manylinux_2_31_x86_64.whl; platform_system == "Linux" and platform_machine == "x86_64"
 
 auto-gptq - 4-bit GPTQ weights, GPU inference, can be used with Triton (auto-gptq[triton])
 - CPU: auto-gptq==0.5.1
@@ -205,20 +205,19 @@ class ScrapingCoder(object):
         :param tokenizer_path: Tokenizer path.
         :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
         """
-        from exllamav2.model import ExLlamaV2, ExLlamaV2Cache, ExLlamaV2Config
-        from exllamav2.tokenizer import ExLlamaV2Tokenizer
+        from exllamav2 import ExLlamaV2, ExLlamaV2Cache, ExLlamaV2Tokenizer, ExLlamaV2Config
         from exllamav2.generator import ExLlamaV2BaseGenerator
 
-        self._update_config(ExLlamaV2Config(os.path.join(model_path, "config.json")), model_kwargs={
-            "model_path": glob.glob(
-                os.path.join(model_path, "*.safetensors")
-            ) if model_file is None else os.path.join(model_path, model_file)
-        }, overwrite_kwargs=False)
+        self._update_config(ExLlamaV2Config(),
+                            model_kwargs={"config":
+                                          {"model_dir": model_path}
+                                          }, overwrite_kwargs=False)
+        self.config.prepare()
 
         self.model = ExLlamaV2(self.config)
-        self.tokenizer = ExLlamaV2Tokenizer(
-            os.path.join(tokenizer_path, "tokenizer.model"))
+        self.tokenizer = ExLlamaV2Tokenizer(self.config)
         cache = ExLlamaV2Cache(self.model)
+        self.model.load_autosplit(cache)
         self.generator = ExLlamaV2BaseGenerator(
             self.model, self.tokenizer, cache)
 

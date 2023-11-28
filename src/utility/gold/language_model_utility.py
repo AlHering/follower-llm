@@ -15,9 +15,9 @@ llama-cpp-python - GGML/GGUF run on CPU, offload layers to GPU, CUBLAS support (
 - CPU: llama-cpp-python==0.2.18
 - GPU: https://github.com/jllllll/llama-cpp-python-cuBLAS-wheels/releases/download/textgen-webui/llama_cpp_python_cuda-0.2.18+cu117-cp310-cp310-manylinux_2_31_x86_64.whl ; platform_system == "Linux" and platform_machine == "x86_64"
 
-exllama - 4-bit GPTQ weights, GPU inference (tested on newer GPUs > Pascal)
-- CPU: exllamav2==0.0.5
-- GPU: https://github.com/jllllll/exllamav2/releases/download/v0.0.5/exllamav2-0.0.5+cu117-cp310-cp310-linux_x86_64.whl; platform_system == "Linux" and platform_machine == "x86_64"
+exllamav2 - 4-bit GPTQ weights, GPU inference (tested on newer GPUs > Pascal)
+- CPU: exllamav2==0.0.9
+- GPU: https://github.com/jllllll/llama-cpp-python-cuBLAS-wheels/releases/download/textgen-webui/llama_cpp_python_cuda-0.2.18+cu117-cp310-cp310-manylinux_2_31_x86_64.whl; platform_system == "Linux" and platform_machine == "x86_64"
 
 auto-gptq - 4-bit GPTQ weights, GPU inference, can be used with Triton (auto-gptq[triton])
 - CPU: auto-gptq==0.5.1
