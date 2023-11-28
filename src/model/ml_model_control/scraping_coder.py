@@ -36,6 +36,7 @@ class ScrapingCoder(object):
         """
         self.backend = backend
         self.system_prompt = default_system_prompt
+        self.config = None
         self.tokenizer = None
         self.model = None
 
@@ -72,7 +73,11 @@ class ScrapingCoder(object):
         :param tokenizer_path: Tokenizer path.
         :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
         """
-        from ctransformers import AutoModelForCausalLM as CAutoModelForCausalLM, AutoTokenizer as CAutoTokenizer
+        from ctransformers import AutoConfig as CAutoConfig, CAutoModelForCausalLM as CAutoModelForCausalLM, AutoTokenizer as CAutoTokenizer
+        if "config" in model_kwargs:
+            self.config = CAutoConfig.from_pretrained(
+                model_path_or_repo_id=model_path, **model_kwargs["config"])
+            model_kwargs["config"] = self.config
         self.model = CAutoModelForCausalLM.from_pretrained(
             model_path_or_repo_id=model_path, model_file=model_file, **model_kwargs)
         # Currently not supported
@@ -98,8 +103,11 @@ class ScrapingCoder(object):
         :param tokenizer_path: Tokenizer path.
         :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
         """
-        from transformers import AutoModelForCausalLM, AutoTokenizer
-
+        from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
+        if "config" in model_kwargs:
+            self.config = AutoConfig.from_pretrained(
+                model_path_or_repo_id=model_path, **model_kwargs["config"])
+            model_kwargs["config"] = self.config
         self.tokenizer = AutoTokenizer.from_pretrained(
             pretrained_model_name_or_path=tokenizer_path, **tokenizer_kwargs) if tokenizer_path is not None else None
         self.model = AutoModelForCausalLM.from_pretrained(
