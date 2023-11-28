@@ -11,10 +11,12 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 # Setting up working directory
 COPY . project/
 WORKDIR /project
-ENV RUNNING_IN_DOCKER True
-ENV CUDA_SUPPORT True
-ENV CONDA_DIR "/project/conda"
+ENV RUNNING_IN_DOCKER true
+ENV CUDA_SUPPORT true
+ENV USE_CONDA = true
+
 ENV VENV_DIR "/project/venv"
+ENV CONDA_DIR "/project/conda"
 ENV CONDA_TORCH_CUDA_INSTALLATION = "pytorch[version=2,build=py3.10_cuda11.7*] torchvision torchaudio pytorch-cuda=11.7 cuda-toolkit ninja git -c pytorch -c nvidia/label/cuda-11.7.0 -c nvidia"
 
 # Install prerequisits
