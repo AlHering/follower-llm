@@ -262,7 +262,9 @@ class ScrapingCoder(object):
         metadata = None
         answer = None
 
-        if self.backend == "ctransformers" or self.backend == "langchain_llamacpp":
+        if self.backend == "ctransformers":
+            answer = self.model(full_prompt, **generation_kwargs)
+        if self.backend == "langchain_llamacpp":
             metadata = self.model(full_prompt, **generation_kwargs)
         elif self.backend == "transformers" or self.backend == "autogptq":
             input_tokens = self.tokenizer(
