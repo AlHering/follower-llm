@@ -8,7 +8,7 @@
 import os
 import glob
 import torch
-from typing import List, Tuple, Any
+from typing import List, Tuple, Any, Callable
 
 """
 Model backend overview
@@ -55,7 +55,8 @@ class ScrapingCoder(object):
                  model_kwargs: dict = None,
                  tokenizer_path: str = None,
                  tokenizer_kwargs: dict = None,
-                 default_system_prompt: str = "You are a friendly and helpful assistant answering questions based on the context provided.") -> None:
+                 default_system_prompt: str = "You are a friendly and helpful assistant answering questions based on the context provided.",
+                 ) -> None:
         """
         Initiation method.
         :param model_path: Path to model files.
@@ -71,6 +72,9 @@ class ScrapingCoder(object):
         self.config = None
         self.tokenizer = None
         self.model = None
+        self.generator = None
+
+        self.history = None
 
         initiation_kwargs = {
             "model_file": model_file, "model_kwargs": model_kwargs, "tokenizer_path": tokenizer_path, "tokenizer_kwargs": tokenizer_kwargs
@@ -205,17 +209,18 @@ class ScrapingCoder(object):
         from exllamav2.tokenizer import ExLlamaV2Tokenizer
         from exllamav2.generator import ExLlamaV2BaseGenerator
 
-        config = ExLlamaV2Config(os.path.join(model_path, "config.json"))
-        if model_file is None:
-            config.model_path = config.model_path = glob.glob(
-                os.path.join(model_path, "*.safetensors"))
-        else:
-            config.model_path = os.path.join(model_path, model_file)
-        model = ExLlamaV2(config)
-        tokenizer = ExLlamaV2Tokenizer(
+        self._update_config(ExLlamaV2Config(os.path.join(model_path, "config.json")), model_kwargs={
+            "model_path": glob.glob(
+                os.path.join(model_path, "*.safetensors")
+            ) if model_file is None else os.path.join(model_path, model_file)
+        }, overwrite_kwargs=False)
+
+        self.model = ExLlamaV2(self.config)
+        self.tokenizer = ExLlamaV2Tokenizer(
             os.path.join(tokenizer_path, "tokenizer.model"))
-        cache = ExLlamaV2Cache(model)
-        self.model = ExLlamaV2BaseGenerator(model, tokenizer, cache)
+        cache = ExLlamaV2Cache(self.model)
+        self.generator = ExLlamaV2BaseGenerator(
+            self.model, self.tokenizer, cache)
 
     def _initiate_langchain_llamacpp(self,
                                      model_path: str,
@@ -243,20 +248,21 @@ class ScrapingCoder(object):
 
     def generate(self,
                  prompt: str,
-                 history: List[Tuple[str, str]] = None,
-                 generation_kwargs: dict = {}) -> Tuple[str, dict]:
+                 generation_kwargs: dict = {},
+                 history_merger: Callable = lambda history: "\n".join(
+            f"<s>{entry[0]}:\n{entry[1]}</s>" for entry in history) + "\n") -> Tuple[str, dict]:
         """
         Method for generating a response to a given prompt and conversation history.
         :param prompt: Prompt.
-        :param history: List of tuples of role ("system", "user", "assistant") and message.
         :param generation_kwargs: Generation kwargs as dictionary.
+        :param prompt_creator: Merger function for creating full prompt, 
+            taking in the prompt history as a list of (<role>, <message>)-tuples as argument (already including the new user prompt).
         :return: Tuple of textual answer and metadata.
         """
-        if history is None:
-            history = [("system", self.system_prompt)]
-        history.append(("user", prompt))
-        full_prompt = "\n".join(
-            f"<|im_start|>{entry[0]}\n{entry[1]}<|im_end|>" for entry in history) + "\n"
+        if self.history is None:
+            self.history = [("system", self.system_prompt)]
+        self.history.append(("user", prompt))
+        full_prompt = history_merger(self.history)
 
         metadata = None
         answer = None
@@ -274,9 +280,9 @@ class ScrapingCoder(object):
             metadata = self.model(full_prompt, **generation_kwargs)
             answer = metadata["choices"][0]["text"]
         elif self.backend == "exllamav2":
-            metadata = self.model.generate_simple(
+            metadata = self.generator.generate_simple(
                 full_prompt, **generation_kwargs)
-
+        self.history.append(("assistant", answer))
         return answer, metadata
 
     """
