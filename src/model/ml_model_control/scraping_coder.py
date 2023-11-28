@@ -76,7 +76,9 @@ class ScrapingCoder(object):
         from ctransformers import AutoConfig as CAutoConfig, AutoModelForCausalLM as CAutoModelForCausalLM, AutoTokenizer as CAutoTokenizer
         if "config" in model_kwargs:
             self.config = CAutoConfig.from_pretrained(
-                model_path_or_repo_id=model_path, **model_kwargs["config"])
+                model_path_or_repo_id=model_path)
+            for key in model_kwargs["config"]:
+                setattr(self.config, key, model_kwargs["config"][key])
             model_kwargs["config"] = self.config
         self.model = CAutoModelForCausalLM.from_pretrained(
             model_path_or_repo_id=model_path, model_file=model_file, **model_kwargs)
@@ -106,7 +108,9 @@ class ScrapingCoder(object):
         from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
         if "config" in model_kwargs:
             self.config = AutoConfig.from_pretrained(
-                model_path_or_repo_id=model_path, **model_kwargs["config"])
+                model_path_or_repo_id=model_path)
+            for key in model_kwargs["config"]:
+                setattr(self.config, key, model_kwargs["config"][key])
             model_kwargs["config"] = self.config
         self.tokenizer = AutoTokenizer.from_pretrained(
             pretrained_model_name_or_path=tokenizer_path, **tokenizer_kwargs) if tokenizer_path is not None else None
