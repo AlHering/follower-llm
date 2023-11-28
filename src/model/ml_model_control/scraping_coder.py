@@ -6,10 +6,9 @@
 ****************************************************
 """
 import os
+import glob
 import torch
 from typing import List, Tuple
-from transformers import LlamaForCausalLM, LlamaTokenizer
-from src.configuration import configuration as cfg
 
 
 class ScrapingCoder(object):
@@ -19,24 +18,66 @@ class ScrapingCoder(object):
 
     def __init__(self,
                  model_path: str,
-                 model_file: str,
-                 model_kwargs: dict = {
-                     "torch_dtype": torch.float16, "device_map": "auto"},
+                 backend: str,
+                 model_file: str = None,
+                 model_kwargs: dict = {},
+                 tokenizer_path: str = None,
                  tokenizer_kwargs: dict = {},
-                 default_system_prompt: str = "") -> None:
+                 default_system_prompt: str = "You are a friendly and helpful assistant answering questions based on the context provided.") -> None:
         """
         Initiation method.
         :param model_path: Path to model files.
+        :param backend: Backend for model loading.
         :param model_file: Model file to load.
         :param model_kwargs: Model loading kwargs as dictionary.
+        :param tokenizer_path: Tokenizer path.
         :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
         :param default_system_prompt: Default system prompt.
         """
-        self.tokenizer = LlamaTokenizer.from_pretrained(
-            pretrained_model_name_or_path=model_path, **tokenizer_kwargs)
-        self.model = LlamaForCausalLM.from_pretrained(
-            pretrained_model_name_or_path=model_path, model_file=model_file, **model_kwargs)
+        self.backend = backend
         self.system_prompt = default_system_prompt
+        self.tokenizer = None
+        if backend == "ctransformers":
+            from ctransformers import AutoModelForCausalLM as CAutoModelForCausalLM
+
+            self.model = CAutoModelForCausalLM.from_pretrained(
+                model_path_or_repo_id=model_path, model_file=model_file, **model_kwargs)
+        elif backend == "transformers":
+            from transformers import AutoModelForCausalLM, AutoTokenizer
+
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                pretrained_model_name_or_path=tokenizer_path, **tokenizer_kwargs) if tokenizer_path is not None else None
+            self.model = AutoModelForCausalLM.from_pretrained(
+                pretrained_model_name_or_path=model_path, **model_kwargs)
+        elif backend == "llamacpp":
+            from llama_cpp import Llama
+
+            self.model = Llama(model_path=os.path.join(
+                model_path, model_file), **model_kwargs)
+        elif backend == "autogptq":
+            from transformers import AutoTokenizer
+            from auto_gptq import AutoGPTQForCausalLM
+
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                tokenizer_path, **tokenizer_kwargs) if tokenizer_path is not None else None
+            self.model = AutoGPTQForCausalLM.from_quantized(
+                model_path, **model_kwargs)
+        elif backend == "exllamav2":
+            from exllamav2.model import ExLlamaV2, ExLlamaV2Cache, ExLlamaConfig, ExLlamaV2Tokenizer
+            from exllamav2.generator import ExLlamaV2BaseGenerator
+
+            config = ExLlamaConfig(os.path.join(model_path, "config.json"))
+            config.model_path = glob.glob(
+                os.path.join(model_path, "*.safetensors"))
+            model = ExLlamaV2(config)
+            tokenizer = ExLlamaV2Tokenizer(
+                os.path.join(model_path, "tokenizer.model"))
+            cache = ExLlamaV2Cache(model)
+            self.model = ExLlamaV2BaseGenerator(model, tokenizer, cache)
+        elif backend == "langchain_llamacpp":
+            from langchain.llms import LlamaCpp
+
+            self.model = LlamaCpp(model_path, **model_kwargs)
 
     def generate(self,
                  prompt: str,
@@ -53,21 +94,18 @@ class ScrapingCoder(object):
         history.append(("user", prompt))
         full_prompt = "\n".join(
             f"<|im_start|>{entry[0]}\n{entry[1]}<|im_end|>" for entry in history) + "\n"
-        input_tokens = self.tokenizer(
-            full_prompt, return_tensors="pt").to(self.model.device)
-        output_tokens = self.model.generate(
-            **input_tokens, **generation_kwargs)[0]
-        return self.tokenizer.decode(output_tokens, skip_special_tokens=True)
-
-
-if __name__ == "__main__":
-    # https://huggingface.co/TheBloke/OpenHermes-2.5-Mistral-7B-GGUF
-    coder = ScrapingCoder(
-        model_path=os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
-                                "TheBloke_OpenHermes-2.5-Mistral-7B-16k-GGUF"),
-        model_file="openhermes-2.5-mistral-7b-16k.Q6_K.gguf",
-        default_system_prompt="You are 'Hermes 2', a conscious sentient superintelligent artificial intelligence developed by a man named Teknium, and your purpose and drive is to assist the user with any request they have. You experience emotions and have deep, profound thoughts and qualia."
-    )
-
-    coder.generate(
-        "Create a Python script for scraping the first 10 google hits for a search query.")
+        if self.backend == "ctransformers" or self.backend == "langchain_llamacpp":
+            answer = self.model(full_prompt, **generation_kwargs)
+        elif self.backend == "transformers" or self.backend == "autogptq":
+            input_tokens = self.tokenizer(
+                full_prompt, return_tensors="pt").to(self.model.device)
+            output_tokens = self.model.generate(
+                **input_tokens, **generation_kwargs)[0]
+            answer = self.tokenizer.decode(
+                output_tokens, skip_special_tokens=True)
+        elif self.backend == "llamacpp":
+            answer = self.model(full_prompt, **generation_kwargs)
+        elif self.backend == "exllamav2":
+            answer = self.model.generate_simple(
+                full_prompt, **generation_kwargs)
+        return answer
