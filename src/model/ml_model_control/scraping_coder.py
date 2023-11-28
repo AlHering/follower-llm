@@ -20,9 +20,9 @@ class ScrapingCoder(object):
                  model_path: str,
                  backend: str,
                  model_file: str = None,
-                 model_kwargs: dict = {},
+                 model_kwargs: dict = None,
                  tokenizer_path: str = None,
-                 tokenizer_kwargs: dict = {},
+                 tokenizer_kwargs: dict = None,
                  default_system_prompt: str = "You are a friendly and helpful assistant answering questions based on the context provided.") -> None:
         """
         Initiation method.
@@ -37,47 +37,155 @@ class ScrapingCoder(object):
         self.backend = backend
         self.system_prompt = default_system_prompt
         self.tokenizer = None
-        if backend == "ctransformers":
-            from ctransformers import AutoModelForCausalLM as CAutoModelForCausalLM
+        self.model = None
 
-            self.model = CAutoModelForCausalLM.from_pretrained(
-                model_path_or_repo_id=model_path, model_file=model_file, **model_kwargs)
-        elif backend == "transformers":
-            from transformers import AutoModelForCausalLM, AutoTokenizer
+        initiation_kwargs = {
+            "model_file": model_file, "model_kwargs": model_kwargs, "tokenizer_path": tokenizer_path, "tokenizer_kwargs": tokenizer_kwargs
+        }
+        {
+            "ctransformers": self._initiate_ctransformers,
+            "transformers": self._initiate_transformers,
+            "llamacpp": self._initiate_llamacpp,
+            "autogptq": self._initiate_autogptq,
+            "exllamav2": self._initiate_exllamav2,
+            "langchain_llamacpp": self._initiate_langchain_llamacpp
+        }(
+            model_path=model_path,
+            **{k: v for k, v in initiation_kwargs.items() if v is not None}
+        )
 
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                pretrained_model_name_or_path=tokenizer_path, **tokenizer_kwargs) if tokenizer_path is not None else None
-            self.model = AutoModelForCausalLM.from_pretrained(
-                pretrained_model_name_or_path=model_path, **model_kwargs)
-        elif backend == "llamacpp":
-            from llama_cpp import Llama
+    """
+    Initiation methods
+    """
 
-            self.model = Llama(model_path=os.path.join(
-                model_path, model_file), **model_kwargs)
-        elif backend == "autogptq":
-            from transformers import AutoTokenizer
-            from auto_gptq import AutoGPTQForCausalLM
+    def _initiate_ctransformers(self,
+                                model_path: str,
+                                model_file: str = None,
+                                model_kwargs: dict = {},
+                                tokenizer_path: str = None,
+                                tokenizer_kwargs: dict = {}) -> None:
+        """
+        Method for initiating ctransformers based tokenizer and model.
+        :param model_path: Path to model files.
+        :param model_file: Model file to load.
+        :param model_kwargs: Model loading kwargs as dictionary.
+        :param tokenizer_path: Tokenizer path.
+        :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+        """
+        from ctransformers import AutoModelForCausalLM as CAutoModelForCausalLM
 
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                tokenizer_path, **tokenizer_kwargs) if tokenizer_path is not None else None
-            self.model = AutoGPTQForCausalLM.from_quantized(
-                model_path, **model_kwargs)
-        elif backend == "exllamav2":
-            from exllamav2.model import ExLlamaV2, ExLlamaV2Cache, ExLlamaConfig, ExLlamaV2Tokenizer
-            from exllamav2.generator import ExLlamaV2BaseGenerator
+        self.model = CAutoModelForCausalLM.from_pretrained(
+            model_path_or_repo_id=model_path, model_file=model_file, **model_kwargs)
 
-            config = ExLlamaConfig(os.path.join(model_path, "config.json"))
-            config.model_path = glob.glob(
-                os.path.join(model_path, "*.safetensors"))
-            model = ExLlamaV2(config)
-            tokenizer = ExLlamaV2Tokenizer(
-                os.path.join(model_path, "tokenizer.model"))
-            cache = ExLlamaV2Cache(model)
-            self.model = ExLlamaV2BaseGenerator(model, tokenizer, cache)
-        elif backend == "langchain_llamacpp":
-            from langchain.llms import LlamaCpp
+    def _initiate_transformers(self,
+                               model_path: str,
+                               model_file: str = None,
+                               model_kwargs: dict = {},
+                               tokenizer_path: str = None,
+                               tokenizer_kwargs: dict = {}) -> None:
+        """
+        Method for initiating transformers based tokenizer and model.
+        :param model_path: Path to model files.
+        :param model_file: Model file to load.
+        :param model_kwargs: Model loading kwargs as dictionary.
+        :param tokenizer_path: Tokenizer path.
+        :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+        """
+        from transformers import AutoModelForCausalLM, AutoTokenizer
 
-            self.model = LlamaCpp(model_path, **model_kwargs)
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            pretrained_model_name_or_path=tokenizer_path, **tokenizer_kwargs) if tokenizer_path is not None else None
+        self.model = AutoModelForCausalLM.from_pretrained(
+            pretrained_model_name_or_path=model_path, **model_kwargs)
+
+    def _initiate_llamacpp(self,
+                           model_path: str,
+                           model_file: str = None,
+                           model_kwargs: dict = {},
+                           tokenizer_path: str = None,
+                           tokenizer_kwargs: dict = {}) -> None:
+        """
+        Method for initiating llamacpp based tokenizer and model.
+        :param model_path: Path to model files.
+        :param model_file: Model file to load.
+        :param model_kwargs: Model loading kwargs as dictionary.
+        :param tokenizer_path: Tokenizer path.
+        :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+        """
+        from llama_cpp import Llama
+
+        self.model = Llama(model_path=os.path.join(
+            model_path, model_file), **model_kwargs)
+
+    def _initiate_autogptq(self,
+                           model_path: str,
+                           model_file: str = None,
+                           model_kwargs: dict = {},
+                           tokenizer_path: str = None,
+                           tokenizer_kwargs: dict = {}) -> None:
+        """
+        Method for initiating autogptq based tokenizer and model.
+        :param model_path: Path to model files.
+        :param model_file: Model file to load.
+        :param model_kwargs: Model loading kwargs as dictionary.
+        :param tokenizer_path: Tokenizer path.
+        :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+        """
+        from transformers import AutoTokenizer
+        from auto_gptq import AutoGPTQForCausalLM
+
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            tokenizer_path, **tokenizer_kwargs) if tokenizer_path is not None else None
+        self.model = AutoGPTQForCausalLM.from_quantized(
+            model_path, **model_kwargs)
+
+    def _initiate_exllamav2(self,
+                            model_path: str,
+                            model_file: str = None,
+                            model_kwargs: dict = {},
+                            tokenizer_path: str = None,
+                            tokenizer_kwargs: dict = {}) -> None:
+        """
+        Method for initiating exllamav2 based tokenizer and model.
+        :param model_path: Path to model files.
+        :param model_file: Model file to load.
+        :param model_kwargs: Model loading kwargs as dictionary.
+        :param tokenizer_path: Tokenizer path.
+        :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+        """
+        from exllamav2.model import ExLlamaV2, ExLlamaV2Cache, ExLlamaConfig, ExLlamaV2Tokenizer
+        from exllamav2.generator import ExLlamaV2BaseGenerator
+
+        config = ExLlamaConfig(os.path.join(model_path, "config.json"))
+        config.model_path = glob.glob(
+            os.path.join(model_path, "*.safetensors"))
+        model = ExLlamaV2(config)
+        tokenizer = ExLlamaV2Tokenizer(
+            os.path.join(model_path, "tokenizer.model"))
+        cache = ExLlamaV2Cache(model)
+        self.model = ExLlamaV2BaseGenerator(model, tokenizer, cache)
+
+    def _initiate_langchain_llamacpp(self,
+                                     model_path: str,
+                                     model_file: str = None,
+                                     model_kwargs: dict = {},
+                                     tokenizer_path: str = None,
+                                     tokenizer_kwargs: dict = {}) -> None:
+        """
+        Method for initiating langchain-llamacpp based tokenizer and model.
+        :param model_path: Path to model files.
+        :param model_file: Model file to load.
+        :param model_kwargs: Model loading kwargs as dictionary.
+        :param tokenizer_path: Tokenizer path.
+        :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+        """
+        from langchain.llms import LlamaCpp
+
+        self.model = LlamaCpp(model_path, **model_kwargs)
+
+    """
+    Generation methods
+    """
 
     def generate(self,
                  prompt: str,
