@@ -45,9 +45,9 @@ printf "\n%s\n" "${delimiter}"
 
 if [[ -z "${REQUIREMENTS}" ]]
 then
-    python -m pip install -r "${SCRIPT_DIR}/requirements.txt"
+    python -m pip install --no-cache-dir -r "${SCRIPT_DIR}/requirements.txt"
 else 
-    python -m pip install -r "${REQUIREMENTS}"
+    python -m pip install --no-cache-dir -r "${REQUIREMENTS}"
 fi
 
 printf "\n%s\n" "${delimiter}"
