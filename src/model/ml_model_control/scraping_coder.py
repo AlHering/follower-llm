@@ -49,7 +49,7 @@ class ScrapingCoder(object):
             "autogptq": self._initiate_autogptq,
             "exllamav2": self._initiate_exllamav2,
             "langchain_llamacpp": self._initiate_langchain_llamacpp
-        }(
+        }[backend](
             model_path=model_path,
             **{k: v for k, v in initiation_kwargs.items() if v is not None}
         )
@@ -112,10 +112,14 @@ class ScrapingCoder(object):
         :param tokenizer_path: Tokenizer path.
         :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
         """
-        from llama_cpp import Llama
+        try:
+            from llama_cpp_cuda import Llama
+        except ImportError:
+            from llama_cpp import Llama
 
         self.model = Llama(model_path=os.path.join(
             model_path, model_file), **model_kwargs)
+        self.model.__del__ = lambda _: None
 
     def _initiate_autogptq(self,
                            model_path: str,
@@ -190,30 +194,37 @@ class ScrapingCoder(object):
     def generate(self,
                  prompt: str,
                  history: List[Tuple[str, str]] = None,
-                 generation_kwargs: dict = {}) -> str:
+                 generation_kwargs: dict = {}) -> Tuple[str, dict]:
         """
         Method for generating a response to a given prompt and conversation history.
         :param prompt: Prompt.
         :param history: List of tuples of role ("system", "user", "assistant") and message.
         :param generation_kwargs: Generation kwargs as dictionary.
+        :return: Tuple of textual answer and metadata.
         """
         if history is None:
             history = [("system", self.system_prompt)]
         history.append(("user", prompt))
         full_prompt = "\n".join(
             f"<|im_start|>{entry[0]}\n{entry[1]}<|im_end|>" for entry in history) + "\n"
+
+        metadata = None
+        answer = None
+
         if self.backend == "ctransformers" or self.backend == "langchain_llamacpp":
-            answer = self.model(full_prompt, **generation_kwargs)
+            metadata = self.model(full_prompt, **generation_kwargs)
         elif self.backend == "transformers" or self.backend == "autogptq":
             input_tokens = self.tokenizer(
                 full_prompt, return_tensors="pt").to(self.model.device)
             output_tokens = self.model.generate(
                 **input_tokens, **generation_kwargs)[0]
-            answer = self.tokenizer.decode(
+            metadata = self.tokenizer.decode(
                 output_tokens, skip_special_tokens=True)
         elif self.backend == "llamacpp":
-            answer = self.model(full_prompt, **generation_kwargs)
+            metadata = self.model(full_prompt, **generation_kwargs)
+            answer = metadata["choices"]["text"]
         elif self.backend == "exllamav2":
-            answer = self.model.generate_simple(
+            metadata = self.model.generate_simple(
                 full_prompt, **generation_kwargs)
-        return answer
+
+        return metadata, answer
