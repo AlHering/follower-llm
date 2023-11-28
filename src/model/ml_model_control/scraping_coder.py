@@ -170,7 +170,6 @@ class ScrapingCoder(object):
 
         self.model = Llama(model_path=os.path.join(
             model_path, model_file), **model_kwargs)
-        self.model.__del__ = lambda _: None
 
     def _initiate_autogptq(self,
                            model_path: str,
