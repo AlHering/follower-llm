@@ -228,9 +228,9 @@ class ScrapingCoder(object):
                 output_tokens, skip_special_tokens=True)
         elif self.backend == "llamacpp":
             metadata = self.model(full_prompt, **generation_kwargs)
-            answer = metadata["choices"]["text"]
+            answer = metadata["choices"][0]["text"]
         elif self.backend == "exllamav2":
             metadata = self.model.generate_simple(
                 full_prompt, **generation_kwargs)
 
-        return metadata, answer
+        return answer, metadata
