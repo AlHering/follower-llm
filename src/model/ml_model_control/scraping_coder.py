@@ -8,7 +8,7 @@
 import os
 import glob
 import torch
-from typing import List, Tuple
+from typing import List, Tuple, Any
 
 """
 Model backend overview
@@ -106,12 +106,9 @@ class ScrapingCoder(object):
         :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
         """
         from ctransformers import AutoConfig as CAutoConfig, AutoModelForCausalLM as CAutoModelForCausalLM, AutoTokenizer as CAutoTokenizer
-        if "config" in model_kwargs:
-            self.config = CAutoConfig.from_pretrained(
-                model_path_or_repo_id=model_path)
-            for key in model_kwargs["config"]:
-                setattr(self.config, key, model_kwargs["config"][key])
-            model_kwargs["config"] = self.config
+
+        self._update_config(CAutoConfig.from_pretrained(
+            model_path_or_repo_id=model_path), model_kwargs=model_kwargs, overwrite_kwargs=True)
         self.model = CAutoModelForCausalLM.from_pretrained(
             model_path_or_repo_id=model_path, model_file=model_file, **model_kwargs)
         # TODO: Currently ctransformers' tokenizer from model is not working.
@@ -138,12 +135,9 @@ class ScrapingCoder(object):
         :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
         """
         from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
-        if "config" in model_kwargs:
-            self.config = AutoConfig.from_pretrained(
-                model_path_or_repo_id=model_path)
-            for key in model_kwargs["config"]:
-                setattr(self.config, key, model_kwargs["config"][key])
-            model_kwargs["config"] = self.config
+
+        self._update_config(AutoConfig.from_pretrained(
+            model_path_or_repo_id=model_path), model_kwargs=model_kwargs, overwrite_kwargs=True)
         self.tokenizer = AutoTokenizer.from_pretrained(
             pretrained_model_name_or_path=tokenizer_path, **tokenizer_kwargs) if tokenizer_path is not None else None
         self.model = AutoModelForCausalLM.from_pretrained(
@@ -207,15 +201,19 @@ class ScrapingCoder(object):
         :param tokenizer_path: Tokenizer path.
         :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
         """
-        from exllamav2.model import ExLlamaV2, ExLlamaV2Cache, ExLlamaConfig, ExLlamaV2Tokenizer
+        from exllamav2.model import ExLlamaV2, ExLlamaV2Cache, ExLlamaV2Config
+        from exllamav2.tokenizer import ExLlamaV2Tokenizer
         from exllamav2.generator import ExLlamaV2BaseGenerator
 
-        config = ExLlamaConfig(os.path.join(model_path, "config.json"))
-        config.model_path = glob.glob(
-            os.path.join(model_path, "*.safetensors"))
+        config = ExLlamaV2Config(os.path.join(model_path, "config.json"))
+        if model_file is None:
+            config.model_path = config.model_path = glob.glob(
+                os.path.join(model_path, "*.safetensors"))
+        else:
+            config.model_path = os.path.join(model_path, model_file)
         model = ExLlamaV2(config)
         tokenizer = ExLlamaV2Tokenizer(
-            os.path.join(model_path, "tokenizer.model"))
+            os.path.join(tokenizer_path, "tokenizer.model"))
         cache = ExLlamaV2Cache(model)
         self.model = ExLlamaV2BaseGenerator(model, tokenizer, cache)
 
@@ -280,3 +278,22 @@ class ScrapingCoder(object):
                 full_prompt, **generation_kwargs)
 
         return answer, metadata
+
+    """
+    Utility methods
+    """
+
+    def _update_config(self, config_obj: Any, model_kwargs, overwrite_kwargs: bool = True) -> None:
+        """
+        Method for updating the instance config from model kwargs.
+        :param config_obj: Config object.
+        :param model_kwargs: Model kwargs.
+        :param overwrite_kwargs: Flag for declaring whether to replace model_kwargs["config"]
+            with config object after update. Defaults to False.
+        """
+        if "config" in model_kwargs:
+            self.config = config_obj
+            for key in model_kwargs["config"]:
+                setattr(self.config, key, model_kwargs["config"][key])
+            if overwrite_kwargs:
+                model_kwargs["config"] = self.config
