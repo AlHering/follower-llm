@@ -9,27 +9,33 @@
 
 # TODO: Plan out and implement common utility.
 """
-model loading 
+Model backend overview
 ------------------------------------------
 llama-cpp-python - GGML/GGUF run on CPU, offload layers to GPU, CUBLAS support (CMAKE_ARGS="-DLLAMA_CUBLAS=on" pip install llama-cpp-python)
-(https://github.com/jllllll/llama-cpp-python-cuBLAS-wheels/releases/download/textgen-webui/llama_cpp_python_cuda-0.2.6+cu117-cp310-cp310-manylinux_2_31_x86_64.whl; platform_system == "Linux" and platform_machine == "x86_64")
+- CPU: llama-cpp-python==0.2.18
+- GPU: https://github.com/jllllll/llama-cpp-python-cuBLAS-wheels/releases/download/textgen-webui/llama_cpp_python_cuda-0.2.18+cu117-cp310-cp310-manylinux_2_31_x86_64.whl ; platform_system == "Linux" and platform_machine == "x86_64"
 
 exllama - 4-bit GPTQ weights, GPU inference (tested on newer GPUs > Pascal)
-(https://github.com/jllllll/exllama/releases/download/0.0.17/exllama-0.0.17+cu117-cp310-cp310-linux_x86_64.whl; platform_system == "Linux" and platform_machine == "x86_64")
+- CPU: exllamav2==0.0.5
+- GPU: https://github.com/jllllll/exllamav2/releases/download/v0.0.5/exllamav2-0.0.5+cu117-cp310-cp310-linux_x86_64.whl; platform_system == "Linux" and platform_machine == "x86_64"
 
 auto-gptq - 4-bit GPTQ weights, GPU inference, can be used with Triton (auto-gptq[triton])
-(https://github.com/PanQiWei/AutoGPTQ/releases/download/v0.4.2/auto_gptq-0.4.2+cu117-cp310-cp310-linux_x86_64.whl; platform_system == "Linux" and platform_machine == "x86_64")
+- CPU: auto-gptq==0.5.1
+- GPU: https://github.com/jllllll/AutoGPTQ/releases/download/v0.5.1/auto_gptq-0.5.1+cu117-cp310-cp310-linux_x86_64.whl; platform_system == "Linux" and platform_machine == "x86_64"
 
-gptq-for-llama - 4-bit GPTQ weights, GPU inference -> practically replaced by auto-gptq
-(https://github.com/jllllll/GPTQ-for-LLaMa-CUDA/releases/download/0.1.0/gptq_for_llama-0.1.0+cu117-cp310-cp310-linux_x86_64.whl; platform_system == "Linux" and platform_machine == "x86_64")
+gptq-for-llama - 4-bit GPTQ weights, GPU inference -> practically replaced by auto-gptq !
+- CPU: gptq-for-llama==0.1.0
+- GPU: https://github.com/jllllll/GPTQ-for-LLaMa-CUDA/releases/download/0.1.0/gptq_for_llama-0.1.0+cu117-cp310-cp310-linux_x86_64.whl; platform_system == "Linux" and platform_machine == "x86_64"
 
 transformers - support common model architectures, CUDA support (e.g. via PyTorch)
+- CPU: transformers==4.35.2
+- GPU: use PyTorch e.g.:
+    --extra-index-url https://download.pytorch.org/whl/cu117
+    torch==2.0.1+cu117
+    torchaudio==2.0.2+cu117
+    torchvision==0.15.2+cu117
 
 ctransformers - transformers C bindings, Cuda support (ctransformers[cuda])
-(https://github.com/jllllll/ctransformers-cuBLAS-wheels/releases/download/AVX2/ctransformers-0.2.27+cu117-py3-none-any.whl; platform_system == "Linux" and platform_machine == "x86_64")
-
-
-
-finnetuning
------------------------------------------
+- CPU: ctransformers==0.2.27
+- GPU: ctransformers[cuda]==0.2.27 or https://github.com/jllllll/ctransformers-cuBLAS-wheels/releases/download/AVX2/ctransformers-0.2.27+cu117-py3-none-any.whl
 """
