@@ -30,5 +30,6 @@ torchvision==0.15.2
 triton==2.0.0
 
 llama-cpp-python==0.2.18
+ctransformers==0.2.27
 exllamav2==0.0.3
 auto-gptq==0.5.1
