@@ -75,7 +75,8 @@ class ScrapingCoder(object):
         from ctransformers import AutoModelForCausalLM as CAutoModelForCausalLM, AutoTokenizer as CAutoTokenizer
         self.model = CAutoModelForCausalLM.from_pretrained(
             model_path_or_repo_id=model_path, model_file=model_file, **model_kwargs)
-        if tokenizer_path is not None:
+        # Currently not supported
+        if False and tokenizer_path is not None:
             if tokenizer_path == model_path:
                 self.tokenizer = CAutoTokenizer.from_pretrained(
                     self.model, **tokenizer_kwargs)
