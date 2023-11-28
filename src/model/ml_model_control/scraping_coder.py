@@ -73,7 +73,7 @@ class ScrapingCoder(object):
         :param tokenizer_path: Tokenizer path.
         :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
         """
-        from ctransformers import AutoConfig as CAutoConfig, CAutoModelForCausalLM as CAutoModelForCausalLM, AutoTokenizer as CAutoTokenizer
+        from ctransformers import AutoConfig as CAutoConfig, AutoModelForCausalLM as CAutoModelForCausalLM, AutoTokenizer as CAutoTokenizer
         if "config" in model_kwargs:
             self.config = CAutoConfig.from_pretrained(
                 model_path_or_repo_id=model_path, **model_kwargs["config"])
