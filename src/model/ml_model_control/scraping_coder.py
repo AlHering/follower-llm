@@ -234,9 +234,11 @@ class ScrapingCoder(object):
         :param tokenizer_path: Tokenizer path.
         :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
         """
-        from langchain.llms import LlamaCpp
+        from langchain.llms.llamacpp import LlamaCpp
 
-        self.model = LlamaCpp(model_path, **model_kwargs)
+        if model_file is not None and not model_path.endswith(model_file):
+            model_path = os.path.join(model_path, model_file)
+        self.model = LlamaCpp(model_path=model_path, **model_kwargs)
 
     """
     Generation methods
