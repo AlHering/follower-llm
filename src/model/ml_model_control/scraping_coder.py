@@ -6,9 +6,8 @@
 ****************************************************
 """
 import os
+from datetime import datetime as dt
 from typing import List, Tuple, Any, Callable, Optional, Type
-from langchain.agents import BaseMultiActionAgent
-from langchain.prompts import StringPromptTemplate
 
 """
 Model backend overview
@@ -88,104 +87,72 @@ class Tool(object):
         return self.func(**{arg.name: arg.value for arg in self.arguments})
 
 
-class ScrapingCoderPromptTemplate(StringPromptTemplate):
+class LanguageModelInstance(object):
     """
-    Class, representing a Scraping Coder Prompt Template.
-    Based off of @https://github.com/samwit/langchain-tutorials/blob/main/agents/YT_CustomAgent_Langchain.ipynb.
-    """
-    template: str
-    tools: List[Tool]
-
-    def format(self, **kwargs: Optional[Any]) -> str:
-        """
-        Central formatting method.
-        :param kwargs: Arbitrary keyword arguments.
-        :return: Formatted prompt.
-        """
-        intermediate_steps = kwargs.pop("intermediate_steps")
-        thoughts = ""
-        for action, oberservation in intermediate_steps:
-            toughts += action.log
-            thoughts += f"\nObservation: {oberservation}\nThought: "
-        kwargs["agent_scratchpad"] = thoughts
-        kwargs["tools"] = "\n".join(
-            [f"{tool.name}: {tool.description}" for tool in self.tools])
-        kwargs["tool_names"] = ", ".join([tool.name for tool in self.tools])
-        return self.template.format(**kwargs)
-
-
-class ScrapingCoderToolbox(object):
-    """
-    Class, representing the langchain-based toolbox of a Scraping Coder Agent.
-    Workflow based off of @https://github.com/samwit/langchain-tutorials/blob/main/agents/YT_CustomAgent_Langchain.ipynb.
-    """
-
-    def __init__(self, base_template: str, tools: List[Tool]) -> None:
-        """
-        Initiation method.
-        :param base_template: Base prompt template to create Scraping Coder prompt template.
-        :param tools: List of tools.
-        """
-        self.base_template = base_template
-        self.tools = tools
-
-        self.prompt_template = None
-
-    def _initiate_prompt_template(self) -> StringPromptTemplate:
-        """
-        Method for initating Scraping Coder prompt template.
-        :return: Prompt template.
-        """
-        return ScrapingCoderPromptTemplate(
-            template=self.base_template,
-            tools=self.tools,
-            input_variables=["input", "intermediate_steps"])
-
-
-SCRAPING_CODER_PROMPT = ScrapingCoderPromptTemplate(
-    template=template,
-    tools=tools,
-    # This omits the `agent_scratchpad`, `tools`, and `tool_names` variables because those are generated dynamically
-    # This includes the `intermediate_steps` variable because that is needed
-    input_variables=["input", "intermediate_steps"]
-)
-
-
-class LangchainScrapingCoder(object):
-    """
-    Class, representing Scraping Coders which utilize language models to support programming scraping infrastructure.
+    Language model class.
     """
 
     def __init__(self,
-                 model_path: str,
                  backend: str,
+                 model_path: str,
                  model_file: str = None,
                  model_kwargs: dict = None,
                  tokenizer_path: str = None,
                  tokenizer_kwargs: dict = None,
+                 config_path: str = None,
+                 config_kwargs: dict = None,
                  default_system_prompt: str = "You are a friendly and helpful assistant answering questions based on the context provided.",
+                 history: List[Tuple[str, str, dict]] = None
                  ) -> None:
         """
         Initiation method.
-        :param model_path: Path to model files.
         :param backend: Backend for model loading.
+        :param model_path: Path to model files.
         :param model_file: Model file to load.
+            Defaults to None.
         :param model_kwargs: Model loading kwargs as dictionary.
+            Defaults to None.
         :param tokenizer_path: Tokenizer path.
+            Defaults to None.
         :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+            Defaults to None.
+        :param config_path: Config path.
+            Defaults to None.
+        :param config_kwargs: Config loading kwargs as dictionary.
+            Defaults to None.
         :param default_system_prompt: Default system prompt.
+            Defaults to a standard system prompt.
+        :param history: Interaction history as list of (<role>, <message>, <metadata>)-tuples tuples.
+            Defaults to None.
         """
         self.backend = backend
         self.system_prompt = default_system_prompt
+
         self.config = None
+        self.config_path = config_path
+        self.config_kwargs = config_kwargs
+
         self.tokenizer = None
+        self.tokenizer_path = tokenizer_path
+        self.tokenizer_kwargs = tokenizer_kwargs
+
         self.model = None
+        self.model_path = model_path
+        self.model_file = model_file
+        self.model_kwargs = model_kwargs
+
         self.generator = None
 
-        self.history = None
+        self.history = [{"system", self.system_prompt, {
+            "intitated": dt.now()}}] if history is None else history
 
         initiation_kwargs = {
-            "model_file": model_file, "model_kwargs": model_kwargs, "tokenizer_path": tokenizer_path, "tokenizer_kwargs": tokenizer_kwargs
+            "model_file": model_file,
+            "model_kwargs": model_kwargs,
+            "tokenizer_path": tokenizer_path,
+            "tokenizer_kwargs": tokenizer_kwargs,
+            "config_path": config_path,
+            "config_kwargs": config_kwargs
         }
         {
             "ctransformers": self._initiate_ctransformers,
@@ -203,71 +170,44 @@ class LangchainScrapingCoder(object):
     Initiation methods
     """
 
-    def _initiate_ctransformers(self,
-                                model_path: str,
-                                model_file: str = None,
-                                model_kwargs: dict = {},
-                                tokenizer_path: str = None,
-                                tokenizer_kwargs: dict = {}) -> None:
+    def _initiate_ctransformers(self, **kwargs) -> None:
         """
         Method for initiating ctransformers based tokenizer and model.
-        :param model_path: Path to model files.
-        :param model_file: Model file to load.
-        :param model_kwargs: Model loading kwargs as dictionary.
-        :param tokenizer_path: Tokenizer path.
-        :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+        :param kwargs: Additional arbitrary keyword arguments.
         """
         from ctransformers import AutoConfig as CAutoConfig, AutoModelForCausalLM as CAutoModelForCausalLM, AutoTokenizer as CAutoTokenizer
 
         self._update_config(CAutoConfig.from_pretrained(
-            model_path_or_repo_id=model_path), model_kwargs=model_kwargs, overwrite_kwargs=True)
+            model_path_or_repo_id=self.model_path), model_kwargs=self.model_kwargs, overwrite_kwargs=True)
         self.model = CAutoModelForCausalLM.from_pretrained(
-            model_path_or_repo_id=model_path, model_file=model_file, **model_kwargs)
+            model_path_or_repo_id=self.model_path, model_file=self.model_file, **self.model_kwargs)
         # TODO: Currently ctransformers' tokenizer from model is not working.
         if False and tokenizer_path is not None:
             if tokenizer_path == model_path:
                 self.tokenizer = CAutoTokenizer.from_pretrained(
-                    self.model, **tokenizer_kwargs)
+                    self.model, **self.tokenizer_kwargs)
             else:
                 self.tokenizer = CAutoTokenizer.from_pretrained(
-                    tokenizer_path, **tokenizer_kwargs)
+                    self.tokenizer_path, **self.tokenizer_kwargs)
 
-    def _initiate_transformers(self,
-                               model_path: str,
-                               model_file: str = None,
-                               model_kwargs: dict = {},
-                               tokenizer_path: str = None,
-                               tokenizer_kwargs: dict = {}) -> None:
+    def _initiate_transformers(self, **kwargs) -> None:
         """
         Method for initiating transformers based tokenizer and model.
-        :param model_path: Path to model files.
-        :param model_file: Model file to load.
-        :param model_kwargs: Model loading kwargs as dictionary.
-        :param tokenizer_path: Tokenizer path.
-        :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+        :param kwargs: Additional arbitrary keyword arguments.
         """
         from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
         self._update_config(AutoConfig.from_pretrained(
-            model_path_or_repo_id=model_path), model_kwargs=model_kwargs, overwrite_kwargs=True)
+            model_path_or_repo_id=self.model_path), model_kwargs=self.model_kwargs, overwrite_kwargs=True)
         self.tokenizer = AutoTokenizer.from_pretrained(
-            pretrained_model_name_or_path=tokenizer_path, **tokenizer_kwargs) if tokenizer_path is not None else None
+            pretrained_model_name_or_path=self.tokenizer_path, **self.tokenizer_kwargs) if self.tokenizer_path is not None else None
         self.model = AutoModelForCausalLM.from_pretrained(
-            pretrained_model_name_or_path=model_path, **model_kwargs)
+            pretrained_model_name_or_path=self.model_path, **self.model_kwargs)
 
-    def _initiate_llamacpp(self,
-                           model_path: str,
-                           model_file: str = None,
-                           model_kwargs: dict = {},
-                           tokenizer_path: str = None,
-                           tokenizer_kwargs: dict = {}) -> None:
+    def _initiate_llamacpp(self, **kwargs) -> None:
         """
         Method for initiating llamacpp based tokenizer and model.
-        :param model_path: Path to model files.
-        :param model_file: Model file to load.
-        :param model_kwargs: Model loading kwargs as dictionary.
-        :param tokenizer_path: Tokenizer path.
-        :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+        :param kwargs: Additional arbitrary keyword arguments.
         """
         try:
             from llama_cpp_cuda import Llama
@@ -275,50 +215,32 @@ class LangchainScrapingCoder(object):
             from llama_cpp import Llama
 
         self.model = Llama(model_path=os.path.join(
-            model_path, model_file), **model_kwargs)
+            self.model_path, self.model_file), **self.model_kwargs)
 
-    def _initiate_autogptq(self,
-                           model_path: str,
-                           model_file: str = None,
-                           model_kwargs: dict = {},
-                           tokenizer_path: str = None,
-                           tokenizer_kwargs: dict = {}) -> None:
+    def _initiate_autogptq(self, **kwargs) -> None:
         """
         Method for initiating autogptq based tokenizer and model.
-        :param model_path: Path to model files.
-        :param model_file: Model file to load.
-        :param model_kwargs: Model loading kwargs as dictionary.
-        :param tokenizer_path: Tokenizer path.
-        :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+        :param kwargs: Additional arbitrary keyword arguments.
         """
         from transformers import AutoTokenizer
         from auto_gptq import AutoGPTQForCausalLM
 
         self.tokenizer = AutoTokenizer.from_pretrained(
-            tokenizer_path, **tokenizer_kwargs) if tokenizer_path is not None else None
+            self.tokenizer_path, **self.tokenizer_kwargs) if self.tokenizer_path is not None else None
         self.model = AutoGPTQForCausalLM.from_quantized(
-            model_path, **model_kwargs)
+            self.model_path, **self.model_kwargs)
 
-    def _initiate_exllamav2(self,
-                            model_path: str,
-                            model_file: str = None,
-                            model_kwargs: dict = {},
-                            tokenizer_path: str = None,
-                            tokenizer_kwargs: dict = {}) -> None:
+    def _initiate_exllamav2(self, **kwargs) -> None:
         """
         Method for initiating exllamav2 based tokenizer and model.
-        :param model_path: Path to model files.
-        :param model_file: Model file to load.
-        :param model_kwargs: Model loading kwargs as dictionary.
-        :param tokenizer_path: Tokenizer path.
-        :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+        :param kwargs: Additional arbitrary keyword arguments.
         """
         from exllamav2 import ExLlamaV2, ExLlamaV2Cache, ExLlamaV2Tokenizer, ExLlamaV2Config
         from exllamav2.generator import ExLlamaV2BaseGenerator
 
         self._update_config(ExLlamaV2Config(),
                             model_kwargs={"config":
-                                          {"model_dir": model_path}
+                                          {"model_dir": self.model_path}
                                           }, overwrite_kwargs=False)
         self.config.prepare()
 
@@ -329,25 +251,16 @@ class LangchainScrapingCoder(object):
         self.generator = ExLlamaV2BaseGenerator(
             self.model, self.tokenizer, cache)
 
-    def _initiate_langchain_llamacpp(self,
-                                     model_path: str,
-                                     model_file: str = None,
-                                     model_kwargs: dict = {},
-                                     tokenizer_path: str = None,
-                                     tokenizer_kwargs: dict = {}) -> None:
+    def _initiate_langchain_llamacpp(self, **kwargs) -> None:
         """
         Method for initiating langchain-llamacpp based tokenizer and model.
-        :param model_path: Path to model files.
-        :param model_file: Model file to load.
-        :param model_kwargs: Model loading kwargs as dictionary.
-        :param tokenizer_path: Tokenizer path.
-        :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+        :param kwargs: Additional arbitrary keyword arguments.
         """
         from langchain.llms.llamacpp import LlamaCpp
 
-        if model_file is not None and not model_path.endswith(model_file):
-            model_path = os.path.join(model_path, model_file)
-        self.model = LlamaCpp(model_path=model_path, **model_kwargs)
+        if self.model_file is not None and not model_path.endswith(self.model_file):
+            model_path = os.path.join(model_path, self.model_file)
+        self.model = LlamaCpp(model_path=model_path, **self.model_kwargs)
 
     """
     Generation methods
@@ -355,21 +268,24 @@ class LangchainScrapingCoder(object):
 
     def generate(self,
                  prompt: str,
-                 generation_kwargs: dict = {},
-                 tokenizer_kwargs: dict = {},
                  history_merger: Callable = lambda history: "\n".join(
-            f"<s>{entry[0]}:\n{entry[1]}</s>" for entry in history) + "\n") -> Tuple[str, dict]:
+                     f"<s>{entry[0]}:\n{entry[1]}</s>" for entry in history) + "\n",
+                 encoding_kwargs: dict = None,
+                 generating_kwargs: dict = None,
+                 decoding_kwargs: dict = None) -> Tuple[str, Optional[dict]]:
         """
         Method for generating a response to a given prompt and conversation history.
         :param prompt: Prompt.
-        :param generation_kwargs: Generation kwargs as dictionary.
-        :param tokenizer_kwargs: Tokenizer kwargs as dictionary.
-        :param prompt_creator: Merger function for creating full prompt, 
-            taking in the prompt history as a list of (<role>, <message>)-tuples as argument (already including the new user prompt).
+        :param history_merger: Merger function for creating full prompt, 
+            taking in the prompt history as a list of (<role>, <message>, <metadata>)-tuples as argument (already including the new user prompt).
+        :param encoding_kwargs: Kwargs for encoding as dictionary.
+            Defaults to None.
+        :param generating_kwargs: Kwargs for generating as dictionary.
+            Defaults to None.
+        :param decoding_kwargs: Kwargs for decoding as dictionary.
+            Defaults to None.
         :return: Tuple of textual answer and metadata.
         """
-        if self.history is None:
-            self.history = [("system", self.system_prompt)]
         self.history.append(("user", prompt))
         full_prompt = history_merger(self.history)
 
@@ -377,20 +293,20 @@ class LangchainScrapingCoder(object):
         answer = None
 
         if self.backend == "ctransformers" or self.backend == "langchain_llamacpp":
-            metadata = self.model(full_prompt, **generation_kwargs)
+            metadata = self.model(full_prompt, **generating_kwargs)
         elif self.backend == "transformers" or self.backend == "autogptq":
             input_tokens = self.tokenizer(
-                full_prompt, return_tensors="pt", **tokenizer_kwargs).to(self.model.device)
+                full_prompt, **encoding_kwargs).to(self.model.device)
             output_tokens = self.model.generate(
-                **input_tokens, **generation_kwargs)[0]
+                **input_tokens, **generating_kwargs)[0]
             metadata = self.tokenizer.decode(
-                output_tokens, skip_special_tokens=True, **tokenizer_kwargs)
+                output_tokens, **decoding_kwargs)
         elif self.backend == "llamacpp":
-            metadata = self.model(full_prompt, **generation_kwargs)
+            metadata = self.model(full_prompt, **generating_kwargs)
             answer = metadata["choices"][0]["text"]
         elif self.backend == "exllamav2":
             metadata = self.generator.generate_simple(
-                full_prompt, **generation_kwargs)
+                full_prompt, **generating_kwargs)
         self.history.append(("assistant", answer))
         return answer, metadata
 
@@ -412,3 +328,25 @@ class LangchainScrapingCoder(object):
                 setattr(self.config, key, model_kwargs["config"][key])
             if overwrite_kwargs:
                 model_kwargs["config"] = self.config
+
+
+class Agent(object):
+    """
+    Class, representing an agent.
+    """
+
+    def __init__(self, llm_instance: LanguageModelInstance, ) -> None:
+        pass
+
+
+class LangchainScrapingCoder(object):
+    """
+    Class, representing Scraping Coders which utilize language models to support programming scraping infrastructure.
+    """
+
+    def __init__(self,
+                 general_llm: LanguageModelInstance) -> None:
+        """
+        Initiation method.
+        :param general_llm: LanguageModelInstance for general tasks.
+        """
