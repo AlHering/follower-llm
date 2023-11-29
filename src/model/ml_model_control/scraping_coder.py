@@ -6,7 +6,7 @@
 ****************************************************
 """
 import os
-from typing import List, Tuple, Any, Callable
+from typing import List, Tuple, Any, Callable, Optional
 from langchain.agents import BaseMultiActionAgent
 from langchain.tools import Tool
 from langchain.prompts import StringPromptTemplate
@@ -44,12 +44,61 @@ ctransformers - transformers C bindings, Cuda support (ctransformers[cuda])
 """
 
 
-SCRAPING_TOOLS = [
+SCRAPING_CODER_TOOLS = [
 ]
 
 
-class ScrapingPromptTemplate(StringPromptTemplate):
-    pass
+class ScrapingCoderToolbox(object):
+    """
+    Class, representing the langchain-based toolbox of a Scraping Coder Agent.
+    Workflow based off of @https://github.com/samwit/langchain-tutorials/blob/main/agents/YT_CustomAgent_Langchain.ipynb.
+    """
+
+    def __init__(self, base_template: str, tools: List[Tool]) -> None:
+        """
+        Initiation method.
+        :param base_template: Base prompt template to create Scraping Coder prompt template.
+        :param tools: List of tools.
+        """
+        self.base_template = base_template
+        self.tools = tools
+
+        self.prompt_template = None
+
+
+class ScrapingCoderPromptTemplate(StringPromptTemplate):
+    """
+    Class, representing a Scraping Coder Prompt Template.
+    Based off of @https://github.com/samwit/langchain-tutorials/blob/main/agents/YT_CustomAgent_Langchain.ipynb.
+    """
+    template: str
+    tools: List[Tool]
+
+    def format(self, **kwargs: Optional[Any]) -> str:
+        """
+        Central formatting method.
+        :param kwargs: Arbitrary keyword arguments.
+        :return: Formatted prompt.
+        """
+        intermediate_steps = kwargs.pop("intermediate_steps")
+        thoughts = ""
+        for action, oberservation in intermediate_steps:
+            toughts += action.log
+            thoughts += f"\nObservation: {oberservation}\nThought: "
+        kwargs["agent_scratchpad"] = thoughts
+        kwargs["tools"] = "\n".join(
+            [f"{tool.name}: {tool.description}" for tool in self.tools])
+        kwargs["tool_names"] = ", ".join([tool.name for tool in self.tools])
+        return self.template.format(**kwargs)
+
+
+SCRAPING_CODER_PROMPT = ScrapingCoderPromptTemplate(
+    template=template,
+    tools=tools,
+    # This omits the `agent_scratchpad`, `tools`, and `tool_names` variables because those are generated dynamically
+    # This includes the `intermediate_steps` variable because that is needed
+    input_variables=["input", "intermediate_steps"]
+)
 
 
 class LangchainScrapingCoder(object):
