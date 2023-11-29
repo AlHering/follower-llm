@@ -186,9 +186,9 @@ class LanguageModelInstance(object):
         from ctransformers import AutoConfig as CAutoConfig, AutoModelForCausalLM as CAutoModelForCausalLM, AutoTokenizer as CAutoTokenizer
 
         self._update_config(CAutoConfig.from_pretrained(
-            model_path_or_repo_id=self.model_path), model_kwargs=self.model_kwargs, overwrite_kwargs=True)
+            model_path_or_repo_id=self.config_path))
         self.model = CAutoModelForCausalLM.from_pretrained(
-            model_path_or_repo_id=self.model_path, model_file=self.model_file, **self.model_kwargs)
+            model_path_or_repo_id=self.model_path, model_file=self.model_file, config=self.config, **self.model_kwargs)
         # TODO: Currently ctransformers' tokenizer from model is not working.
         if False and tokenizer_path is not None:
             if tokenizer_path == model_path:
@@ -206,11 +206,11 @@ class LanguageModelInstance(object):
         from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
         self._update_config(AutoConfig.from_pretrained(
-            model_path_or_repo_id=self.model_path), model_kwargs=self.model_kwargs, overwrite_kwargs=True)
+            model_path_or_repo_id=self.config_path))
         self.tokenizer = AutoTokenizer.from_pretrained(
             pretrained_model_name_or_path=self.tokenizer_path, **self.tokenizer_kwargs) if self.tokenizer_path is not None else None
         self.model = AutoModelForCausalLM.from_pretrained(
-            pretrained_model_name_or_path=self.model_path, **self.model_kwargs)
+            pretrained_model_name_or_path=self.model_path, config=self.config, **self.model_kwargs)
 
     def _initiate_llamacpp(self, **kwargs) -> None:
         """
@@ -246,10 +246,9 @@ class LanguageModelInstance(object):
         from exllamav2 import ExLlamaV2, ExLlamaV2Cache, ExLlamaV2Tokenizer, ExLlamaV2Config
         from exllamav2.generator import ExLlamaV2BaseGenerator
 
-        self._update_config(ExLlamaV2Config(),
-                            model_kwargs={"config":
-                                          {"model_dir": self.model_path}
-                                          }, overwrite_kwargs=False)
+        if self.config_kwargs is None:
+            self.config_kwargs = {"model_dir": self.model_path}
+        self._update_config(ExLlamaV2Config())
         self.config.prepare()
 
         self.model = ExLlamaV2(self.config)
@@ -322,20 +321,15 @@ class LanguageModelInstance(object):
     Utility methods
     """
 
-    def _update_config(self, config_obj: Any, model_kwargs, overwrite_kwargs: bool = True) -> None:
+    def _update_config(self, config_obj: Any) -> None:
         """
         Method for updating the instance config from model kwargs.
         :param config_obj: Config object.
-        :param model_kwargs: Model kwargs.
-        :param overwrite_kwargs: Flag for declaring whether to replace model_kwargs["config"]
-            with config object after update. Defaults to False.
         """
-        if "config" in model_kwargs:
+        if self.config_kwargs is not None:
             self.config = config_obj
-            for key in model_kwargs["config"]:
-                setattr(self.config, key, model_kwargs["config"][key])
-            if overwrite_kwargs:
-                model_kwargs["config"] = self.config
+            for key in self.config_kwargs:
+                setattr(self.config, key, self.config_kwargs[key])
 
 
 class Agent(object):
