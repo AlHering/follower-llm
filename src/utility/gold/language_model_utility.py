@@ -345,7 +345,7 @@ class Agent(object):
 
     def __init__(self,
                  general_llm: LanguageModelInstance,
-                 tools: List[AgentTool],
+                 tools: List[AgentTool] = None,
                  cache: List[Tuple[str, str, dict]] = None,
                  dedicated_planner_llm: LanguageModelInstance = None,
                  dedicated_actor_llm: LanguageModelInstance = None,
@@ -354,6 +354,7 @@ class Agent(object):
         Initiation method.
         :param general_llm: LanguageModelInstance for general tasks.
         :param tools: List of tools to be used by the agent.
+            Defaults to None in which case no tools are used.
         :param cache: Cache as list of (<step>, <prompt>, <metadata>)-tuples tuples.
             Defaults to None.
         :param dedicated_planner_llm: LanguageModelInstance for planning.
