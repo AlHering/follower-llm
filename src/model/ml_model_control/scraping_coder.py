@@ -6,9 +6,8 @@
 ****************************************************
 """
 import os
-from typing import List, Tuple, Any, Callable, Optional
+from typing import List, Tuple, Any, Callable, Optional, Type
 from langchain.agents import BaseMultiActionAgent
-from langchain.tools import Tool
 from langchain.prompts import StringPromptTemplate
 
 """
@@ -44,26 +43,45 @@ ctransformers - transformers C bindings, Cuda support (ctransformers[cuda])
 """
 
 
-SCRAPING_CODER_TOOLS = [
-]
-
-
-class ScrapingCoderToolbox(object):
+class ToolArgument(object):
     """
-    Class, representing the langchain-based toolbox of a Scraping Coder Agent.
-    Workflow based off of @https://github.com/samwit/langchain-tutorials/blob/main/agents/YT_CustomAgent_Langchain.ipynb.
+    Class, representing a tool argument.
     """
+    name: str
+    type: Type
+    description: str
+    value: Any
 
-    def __init__(self, base_template: str, tools: List[Tool]) -> None:
+    def extract(self, input: str) -> bool:
         """
-        Initiation method.
-        :param base_template: Base prompt template to create Scraping Coder prompt template.
-        :param tools: List of tools.
+        Method for extracting argument from input.
+        :param input: Input to extract argument from.
+        :return: True, if extraction was successful, else False.
         """
-        self.base_template = base_template
-        self.tools = tools
+        try:
+            self.value = self.type(input)
+            return True
+        except TypeError:
+            return False
 
-        self.prompt_template = None
+    def __call__(self) -> str:
+        """
+        Call method for returning value as string.
+        :return: Stored value as string.
+        """
+        return str(self.value)
+
+
+class Tool(object):
+    """
+    Class, representing a tool.
+    """
+    name: str
+    description: str
+    func: Callable
+    arguments: List[str]
+    argument_types: List[str]
+    argument_descriptions: List[str]
 
 
 class ScrapingCoderPromptTemplate(StringPromptTemplate):
@@ -90,6 +108,34 @@ class ScrapingCoderPromptTemplate(StringPromptTemplate):
             [f"{tool.name}: {tool.description}" for tool in self.tools])
         kwargs["tool_names"] = ", ".join([tool.name for tool in self.tools])
         return self.template.format(**kwargs)
+
+
+class ScrapingCoderToolbox(object):
+    """
+    Class, representing the langchain-based toolbox of a Scraping Coder Agent.
+    Workflow based off of @https://github.com/samwit/langchain-tutorials/blob/main/agents/YT_CustomAgent_Langchain.ipynb.
+    """
+
+    def __init__(self, base_template: str, tools: List[Tool]) -> None:
+        """
+        Initiation method.
+        :param base_template: Base prompt template to create Scraping Coder prompt template.
+        :param tools: List of tools.
+        """
+        self.base_template = base_template
+        self.tools = tools
+
+        self.prompt_template = None
+
+    def _initiate_prompt_template(self) -> StringPromptTemplate:
+        """
+        Method for initating Scraping Coder prompt template.
+        :return: Prompt template.
+        """
+        return ScrapingCoderPromptTemplate(
+            template=self.base_template,
+            tools=self.tools,
+            input_variables=["input", "intermediate_steps"])
 
 
 SCRAPING_CODER_PROMPT = ScrapingCoderPromptTemplate(
