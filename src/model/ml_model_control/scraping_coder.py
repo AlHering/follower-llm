@@ -79,9 +79,13 @@ class Tool(object):
     name: str
     description: str
     func: Callable
-    arguments: List[str]
-    argument_types: List[str]
-    argument_descriptions: List[str]
+    arguments: List[ToolArgument]
+
+    def __call__(self) -> Any:
+        """
+        Call method for running tool function with arguments.
+        """
+        return self.func(**{arg.name: arg.value for arg in self.arguments})
 
 
 class ScrapingCoderPromptTemplate(StringPromptTemplate):
