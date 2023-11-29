@@ -343,8 +343,12 @@ class Agent(object):
     Class, representing an agent.
     """
 
-    def __init__(self, llm_instance: LanguageModelInstance, ) -> None:
-        pass
+    def __init__(self,
+                 general_llm: LanguageModelInstance) -> None:
+        """
+        Initiation method.
+        :param general_llm: LanguageModelInstance for general tasks.
+        """
 
 
 """
