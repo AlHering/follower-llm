@@ -345,12 +345,15 @@ class Agent(object):
 
     def __init__(self,
                  general_llm: LanguageModelInstance,
+                 cache: List[Tuple[str, str, dict]] = None,
                  dedicated_planner_llm: LanguageModelInstance = None,
                  dedicated_actor_llm: LanguageModelInstance = None,
                  dedicated_oberserver_llm: LanguageModelInstance = None) -> None:
         """
         Initiation method.
         :param general_llm: LanguageModelInstance for general tasks.
+        :param cache: Cache as list of (<step>, <prompt>, <metadata>)-tuples tuples.
+            Defaults to None.
         :param dedicated_planner_llm: LanguageModelInstance for planning.
             Defaults to None in which case the general LLM is used for this task.
         :param dedicated_actor_llm: LanguageModelInstance for acting.
@@ -359,6 +362,7 @@ class Agent(object):
             Defaults to None in which case the general LLM is used for this task.
         """
         self.general_llm = general_llm
+        self.cache = cache
         self.planner_llm = self.general_llm if dedicated_planner_llm is None else dedicated_planner_llm
         self.actor_llm = self.general_llm if dedicated_actor_llm is None else dedicated_actor_llm
         self.observer_llm = self.general_llm if dedicated_oberserver_llm is None else dedicated_oberserver_llm
@@ -369,7 +373,11 @@ class Agent(object):
         :param start_prompt: Start prompt.
         :return: Answer.
         """
-        pass
+        self.cache.append(("start", start_prompt, {"timestamp": dt.now()}))
+        while not self.cache[-1][0] == "finished":
+            for step in [self.plan, self.act, self.observe]:
+                step()
+                self.report()
 
     def plan(self) -> Any:
         """
@@ -389,6 +397,12 @@ class Agent(object):
         """
         Method for handling an oberservation step.
         :return: Answer.
+        """
+        pass
+
+    def report(self) -> None:
+        """
+        Method for printing an report.
         """
         pass
 
