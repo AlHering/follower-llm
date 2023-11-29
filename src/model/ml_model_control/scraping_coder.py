@@ -248,12 +248,14 @@ class ScrapingCoder(object):
     def generate(self,
                  prompt: str,
                  generation_kwargs: dict = {},
+                 tokenizer_kwargs: dict = {},
                  history_merger: Callable = lambda history: "\n".join(
             f"<s>{entry[0]}:\n{entry[1]}</s>" for entry in history) + "\n") -> Tuple[str, dict]:
         """
         Method for generating a response to a given prompt and conversation history.
         :param prompt: Prompt.
         :param generation_kwargs: Generation kwargs as dictionary.
+        :param tokenizer_kwargs: Tokenizer kwargs as dictionary.
         :param prompt_creator: Merger function for creating full prompt, 
             taking in the prompt history as a list of (<role>, <message>)-tuples as argument (already including the new user prompt).
         :return: Tuple of textual answer and metadata.
@@ -270,11 +272,11 @@ class ScrapingCoder(object):
             metadata = self.model(full_prompt, **generation_kwargs)
         elif self.backend == "transformers" or self.backend == "autogptq":
             input_tokens = self.tokenizer(
-                full_prompt, return_tensors="pt").to(self.model.device)
+                full_prompt, return_tensors="pt", **tokenizer_kwargs).to(self.model.device)
             output_tokens = self.model.generate(
                 **input_tokens, **generation_kwargs)[0]
             metadata = self.tokenizer.decode(
-                output_tokens, skip_special_tokens=True)
+                output_tokens, skip_special_tokens=True, **tokenizer_kwargs)
         elif self.backend == "llamacpp":
             metadata = self.model(full_prompt, **generation_kwargs)
             answer = metadata["choices"][0]["text"]
