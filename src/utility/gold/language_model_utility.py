@@ -79,7 +79,7 @@ class ToolArgument(object):
         return str(self.value)
 
 
-class Tool(object):
+class AgentTool(object):
     """
     Class, representing a tool.
     """
@@ -345,6 +345,7 @@ class Agent(object):
 
     def __init__(self,
                  general_llm: LanguageModelInstance,
+                 tools: List[AgentTool],
                  cache: List[Tuple[str, str, dict]] = None,
                  dedicated_planner_llm: LanguageModelInstance = None,
                  dedicated_actor_llm: LanguageModelInstance = None,
@@ -352,6 +353,7 @@ class Agent(object):
         """
         Initiation method.
         :param general_llm: LanguageModelInstance for general tasks.
+        :param tools: List of tools to be used by the agent.
         :param cache: Cache as list of (<step>, <prompt>, <metadata>)-tuples tuples.
             Defaults to None.
         :param dedicated_planner_llm: LanguageModelInstance for planning.
@@ -362,6 +364,7 @@ class Agent(object):
             Defaults to None in which case the general LLM is used for this task.
         """
         self.general_llm = general_llm
+        self.tools = tools
         self.cache = cache
         self.planner_llm = self.general_llm if dedicated_planner_llm is None else dedicated_planner_llm
         self.actor_llm = self.general_llm if dedicated_actor_llm is None else dedicated_actor_llm
