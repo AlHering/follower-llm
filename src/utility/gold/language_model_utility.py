@@ -363,6 +363,35 @@ class Agent(object):
         self.actor_llm = self.general_llm if dedicated_actor_llm is None else dedicated_actor_llm
         self.observer_llm = self.general_llm if dedicated_oberserver_llm is None else dedicated_oberserver_llm
 
+    def loop(self, start_prompt: str) -> Any:
+        """
+        Method for starting handler loop.
+        :param start_prompt: Start prompt.
+        :return: Answer.
+        """
+        pass
+
+    def plan(self) -> Any:
+        """
+        Method for handling an planning step.
+        :return: Answer.
+        """
+        pass
+
+    def act(self) -> Any:
+        """
+        Method for handling an acting step.
+        :return: Answer.
+        """
+        pass
+
+    def observe(self) -> Any:
+        """
+        Method for handling an oberservation step.
+        :return: Answer.
+        """
+        pass
+
 
 """
 Evaluation and experimentation
