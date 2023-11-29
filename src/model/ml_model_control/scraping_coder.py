@@ -7,6 +7,7 @@
 """
 import os
 from datetime import datetime as dt
+from src.utility.gold.language_model_utility import Agent, LanguageModelInstance
 from typing import List, Tuple, Any, Callable, Optional, Type
 
 """
@@ -42,7 +43,7 @@ ctransformers - transformers C bindings, Cuda support (ctransformers[cuda])
 """
 
 
-class LangchainScrapingCoder(object):
+class LangchainScrapingCoder(Agent):
     """
     Class, representing Scraping Coders which utilize language models to support programming scraping infrastructure.
     """
