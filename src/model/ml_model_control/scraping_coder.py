@@ -7,6 +7,9 @@
 """
 import os
 from typing import List, Tuple, Any, Callable
+from langchain.agents import BaseMultiActionAgent
+from langchain.tools import Tool
+from langchain.prompts import StringPromptTemplate
 
 """
 Model backend overview
@@ -41,7 +44,15 @@ ctransformers - transformers C bindings, Cuda support (ctransformers[cuda])
 """
 
 
-class ScrapingCoder(object):
+SCRAPING_TOOLS = [
+]
+
+
+class ScrapingPromptTemplate(StringPromptTemplate):
+    pass
+
+
+class LangchainScrapingCoder(object):
     """
     Class, representing Scraping Coders which utilize language models to support programming scraping infrastructure.
     """
