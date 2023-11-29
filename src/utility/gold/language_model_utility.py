@@ -8,7 +8,8 @@
 """
 import os
 import traceback
-from typing import List, Tuple, Any, Callable
+from typing import List, Tuple, Any, Callable, Optional, Type
+from datetime import datetime as dt
 from src.configuration import configuration as cfg
 
 # TODO: Plan out and implement common utility.
@@ -44,42 +45,122 @@ ctransformers - transformers C bindings, Cuda support (ctransformers[cuda])
 - GPU: ctransformers[cuda]==0.2.27 or https://github.com/jllllll/ctransformers-cuBLAS-wheels/releases/download/AVX2/ctransformers-0.2.27+cu117-py3-none-any.whl
 """
 
+"""
+Abstractions
+"""
 
-class BackendAgnosticLanguageModel(object):
+
+class ToolArgument(object):
     """
-    Class, representing a backend agnostic model.
+    Class, representing a tool argument.
+    """
+    name: str
+    type: Type
+    description: str
+    value: Any
+
+    def extract(self, input: str) -> bool:
+        """
+        Method for extracting argument from input.
+        :param input: Input to extract argument from.
+        :return: True, if extraction was successful, else False.
+        """
+        try:
+            self.value = self.type(input)
+            return True
+        except TypeError:
+            return False
+
+    def __call__(self) -> str:
+        """
+        Call method for returning value as string.
+        :return: Stored value as string.
+        """
+        return str(self.value)
+
+
+class Tool(object):
+    """
+    Class, representing a tool.
+    """
+    name: str
+    description: str
+    func: Callable
+    arguments: List[ToolArgument]
+
+    def __call__(self) -> Any:
+        """
+        Call method for running tool function with arguments.
+        """
+        return self.func(**{arg.name: arg.value for arg in self.arguments})
+
+
+class LanguageModelInstance(object):
+    """
+    Language model class.
     """
 
     def __init__(self,
-                 model_path: str,
                  backend: str,
+                 model_path: str,
                  model_file: str = None,
                  model_kwargs: dict = None,
                  tokenizer_path: str = None,
                  tokenizer_kwargs: dict = None,
+                 config_path: str = None,
+                 config_kwargs: dict = None,
                  default_system_prompt: str = "You are a friendly and helpful assistant answering questions based on the context provided.",
+                 history: List[Tuple[str, str, dict]] = None
                  ) -> None:
         """
         Initiation method.
-        :param model_path: Path to model files.
         :param backend: Backend for model loading.
+        :param model_path: Path to model files.
         :param model_file: Model file to load.
+            Defaults to None.
         :param model_kwargs: Model loading kwargs as dictionary.
+            Defaults to None.
         :param tokenizer_path: Tokenizer path.
+            Defaults to None.
         :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+            Defaults to None.
+        :param config_path: Config path.
+            Defaults to None.
+        :param config_kwargs: Config loading kwargs as dictionary.
+            Defaults to None.
         :param default_system_prompt: Default system prompt.
+            Defaults to a standard system prompt.
+        :param history: Interaction history as list of (<role>, <message>, <metadata>)-tuples tuples.
+            Defaults to None.
         """
         self.backend = backend
         self.system_prompt = default_system_prompt
+
         self.config = None
+        self.config_path = config_path
+        self.config_kwargs = config_kwargs
+
         self.tokenizer = None
+        self.tokenizer_path = tokenizer_path
+        self.tokenizer_kwargs = tokenizer_kwargs
+
         self.model = None
+        self.model_path = model_path
+        self.model_file = model_file
+        self.model_kwargs = model_kwargs
+
         self.generator = None
 
-        self.history = None
+        self.history = [{"system", self.system_prompt, {
+            "intitated": dt.now()}}] if history is None else history
 
         initiation_kwargs = {
-            "model_file": model_file, "model_kwargs": model_kwargs, "tokenizer_path": tokenizer_path, "tokenizer_kwargs": tokenizer_kwargs
+            "model_file": model_file,
+            "model_kwargs": model_kwargs,
+            "tokenizer_path": tokenizer_path,
+            "tokenizer_kwargs": tokenizer_kwargs,
+            "config_path": config_path,
+            "config_kwargs": config_kwargs
         }
         {
             "ctransformers": self._initiate_ctransformers,
@@ -97,71 +178,44 @@ class BackendAgnosticLanguageModel(object):
     Initiation methods
     """
 
-    def _initiate_ctransformers(self,
-                                model_path: str,
-                                model_file: str = None,
-                                model_kwargs: dict = {},
-                                tokenizer_path: str = None,
-                                tokenizer_kwargs: dict = {}) -> None:
+    def _initiate_ctransformers(self, **kwargs) -> None:
         """
         Method for initiating ctransformers based tokenizer and model.
-        :param model_path: Path to model files.
-        :param model_file: Model file to load.
-        :param model_kwargs: Model loading kwargs as dictionary.
-        :param tokenizer_path: Tokenizer path.
-        :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+        :param kwargs: Additional arbitrary keyword arguments.
         """
         from ctransformers import AutoConfig as CAutoConfig, AutoModelForCausalLM as CAutoModelForCausalLM, AutoTokenizer as CAutoTokenizer
 
         self._update_config(CAutoConfig.from_pretrained(
-            model_path_or_repo_id=model_path), model_kwargs=model_kwargs, overwrite_kwargs=True)
+            model_path_or_repo_id=self.model_path), model_kwargs=self.model_kwargs, overwrite_kwargs=True)
         self.model = CAutoModelForCausalLM.from_pretrained(
-            model_path_or_repo_id=model_path, model_file=model_file, **model_kwargs)
+            model_path_or_repo_id=self.model_path, model_file=self.model_file, **self.model_kwargs)
         # TODO: Currently ctransformers' tokenizer from model is not working.
         if False and tokenizer_path is not None:
             if tokenizer_path == model_path:
                 self.tokenizer = CAutoTokenizer.from_pretrained(
-                    self.model, **tokenizer_kwargs)
+                    self.model, **self.tokenizer_kwargs)
             else:
                 self.tokenizer = CAutoTokenizer.from_pretrained(
-                    tokenizer_path, **tokenizer_kwargs)
+                    self.tokenizer_path, **self.tokenizer_kwargs)
 
-    def _initiate_transformers(self,
-                               model_path: str,
-                               model_file: str = None,
-                               model_kwargs: dict = {},
-                               tokenizer_path: str = None,
-                               tokenizer_kwargs: dict = {}) -> None:
+    def _initiate_transformers(self, **kwargs) -> None:
         """
         Method for initiating transformers based tokenizer and model.
-        :param model_path: Path to model files.
-        :param model_file: Model file to load.
-        :param model_kwargs: Model loading kwargs as dictionary.
-        :param tokenizer_path: Tokenizer path.
-        :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+        :param kwargs: Additional arbitrary keyword arguments.
         """
         from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
         self._update_config(AutoConfig.from_pretrained(
-            model_path_or_repo_id=model_path), model_kwargs=model_kwargs, overwrite_kwargs=True)
+            model_path_or_repo_id=self.model_path), model_kwargs=self.model_kwargs, overwrite_kwargs=True)
         self.tokenizer = AutoTokenizer.from_pretrained(
-            pretrained_model_name_or_path=tokenizer_path, **tokenizer_kwargs) if tokenizer_path is not None else None
+            pretrained_model_name_or_path=self.tokenizer_path, **self.tokenizer_kwargs) if self.tokenizer_path is not None else None
         self.model = AutoModelForCausalLM.from_pretrained(
-            pretrained_model_name_or_path=model_path, **model_kwargs)
+            pretrained_model_name_or_path=self.model_path, **self.model_kwargs)
 
-    def _initiate_llamacpp(self,
-                           model_path: str,
-                           model_file: str = None,
-                           model_kwargs: dict = {},
-                           tokenizer_path: str = None,
-                           tokenizer_kwargs: dict = {}) -> None:
+    def _initiate_llamacpp(self, **kwargs) -> None:
         """
         Method for initiating llamacpp based tokenizer and model.
-        :param model_path: Path to model files.
-        :param model_file: Model file to load.
-        :param model_kwargs: Model loading kwargs as dictionary.
-        :param tokenizer_path: Tokenizer path.
-        :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+        :param kwargs: Additional arbitrary keyword arguments.
         """
         try:
             from llama_cpp_cuda import Llama
@@ -169,50 +223,32 @@ class BackendAgnosticLanguageModel(object):
             from llama_cpp import Llama
 
         self.model = Llama(model_path=os.path.join(
-            model_path, model_file), **model_kwargs)
+            self.model_path, self.model_file), **self.model_kwargs)
 
-    def _initiate_autogptq(self,
-                           model_path: str,
-                           model_file: str = None,
-                           model_kwargs: dict = {},
-                           tokenizer_path: str = None,
-                           tokenizer_kwargs: dict = {}) -> None:
+    def _initiate_autogptq(self, **kwargs) -> None:
         """
         Method for initiating autogptq based tokenizer and model.
-        :param model_path: Path to model files.
-        :param model_file: Model file to load.
-        :param model_kwargs: Model loading kwargs as dictionary.
-        :param tokenizer_path: Tokenizer path.
-        :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+        :param kwargs: Additional arbitrary keyword arguments.
         """
         from transformers import AutoTokenizer
         from auto_gptq import AutoGPTQForCausalLM
 
         self.tokenizer = AutoTokenizer.from_pretrained(
-            tokenizer_path, **tokenizer_kwargs) if tokenizer_path is not None else None
+            self.tokenizer_path, **self.tokenizer_kwargs) if self.tokenizer_path is not None else None
         self.model = AutoGPTQForCausalLM.from_quantized(
-            model_path, **model_kwargs)
+            self.model_path, **self.model_kwargs)
 
-    def _initiate_exllamav2(self,
-                            model_path: str,
-                            model_file: str = None,
-                            model_kwargs: dict = {},
-                            tokenizer_path: str = None,
-                            tokenizer_kwargs: dict = {}) -> None:
+    def _initiate_exllamav2(self, **kwargs) -> None:
         """
         Method for initiating exllamav2 based tokenizer and model.
-        :param model_path: Path to model files.
-        :param model_file: Model file to load.
-        :param model_kwargs: Model loading kwargs as dictionary.
-        :param tokenizer_path: Tokenizer path.
-        :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+        :param kwargs: Additional arbitrary keyword arguments.
         """
         from exllamav2 import ExLlamaV2, ExLlamaV2Cache, ExLlamaV2Tokenizer, ExLlamaV2Config
         from exllamav2.generator import ExLlamaV2BaseGenerator
 
         self._update_config(ExLlamaV2Config(),
                             model_kwargs={"config":
-                                          {"model_dir": model_path}
+                                          {"model_dir": self.model_path}
                                           }, overwrite_kwargs=False)
         self.config.prepare()
 
@@ -223,25 +259,16 @@ class BackendAgnosticLanguageModel(object):
         self.generator = ExLlamaV2BaseGenerator(
             self.model, self.tokenizer, cache)
 
-    def _initiate_langchain_llamacpp(self,
-                                     model_path: str,
-                                     model_file: str = None,
-                                     model_kwargs: dict = {},
-                                     tokenizer_path: str = None,
-                                     tokenizer_kwargs: dict = {}) -> None:
+    def _initiate_langchain_llamacpp(self, **kwargs) -> None:
         """
         Method for initiating langchain-llamacpp based tokenizer and model.
-        :param model_path: Path to model files.
-        :param model_file: Model file to load.
-        :param model_kwargs: Model loading kwargs as dictionary.
-        :param tokenizer_path: Tokenizer path.
-        :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+        :param kwargs: Additional arbitrary keyword arguments.
         """
         from langchain.llms.llamacpp import LlamaCpp
 
-        if model_file is not None and not model_path.endswith(model_file):
-            model_path = os.path.join(model_path, model_file)
-        self.model = LlamaCpp(model_path=model_path, **model_kwargs)
+        if self.model_file is not None and not model_path.endswith(self.model_file):
+            model_path = os.path.join(model_path, self.model_file)
+        self.model = LlamaCpp(model_path=model_path, **self.model_kwargs)
 
     """
     Generation methods
@@ -249,21 +276,24 @@ class BackendAgnosticLanguageModel(object):
 
     def generate(self,
                  prompt: str,
-                 generation_kwargs: dict = {},
-                 tokenizer_kwargs: dict = {},
                  history_merger: Callable = lambda history: "\n".join(
-            f"<s>{entry[0]}:\n{entry[1]}</s>" for entry in history) + "\n") -> Tuple[str, dict]:
+                     f"<s>{entry[0]}:\n{entry[1]}</s>" for entry in history) + "\n",
+                 encoding_kwargs: dict = None,
+                 generating_kwargs: dict = None,
+                 decoding_kwargs: dict = None) -> Tuple[str, Optional[dict]]:
         """
         Method for generating a response to a given prompt and conversation history.
         :param prompt: Prompt.
-        :param generation_kwargs: Generation kwargs as dictionary.
-        :param tokenizer_kwargs: Tokenizer kwargs as dictionary.
-        :param prompt_creator: Merger function for creating full prompt, 
-            taking in the prompt history as a list of (<role>, <message>)-tuples as argument (already including the new user prompt).
+        :param history_merger: Merger function for creating full prompt, 
+            taking in the prompt history as a list of (<role>, <message>, <metadata>)-tuples as argument (already including the new user prompt).
+        :param encoding_kwargs: Kwargs for encoding as dictionary.
+            Defaults to None.
+        :param generating_kwargs: Kwargs for generating as dictionary.
+            Defaults to None.
+        :param decoding_kwargs: Kwargs for decoding as dictionary.
+            Defaults to None.
         :return: Tuple of textual answer and metadata.
         """
-        if self.history is None:
-            self.history = [("system", self.system_prompt)]
         self.history.append(("user", prompt))
         full_prompt = history_merger(self.history)
 
@@ -271,20 +301,20 @@ class BackendAgnosticLanguageModel(object):
         answer = None
 
         if self.backend == "ctransformers" or self.backend == "langchain_llamacpp":
-            metadata = self.model(full_prompt, **generation_kwargs)
+            metadata = self.model(full_prompt, **generating_kwargs)
         elif self.backend == "transformers" or self.backend == "autogptq":
             input_tokens = self.tokenizer(
-                full_prompt, return_tensors="pt", **tokenizer_kwargs).to(self.model.device)
+                full_prompt, **encoding_kwargs).to(self.model.device)
             output_tokens = self.model.generate(
-                **input_tokens, **generation_kwargs)[0]
+                **input_tokens, **generating_kwargs)[0]
             metadata = self.tokenizer.decode(
-                output_tokens, skip_special_tokens=True, **tokenizer_kwargs)
+                output_tokens, **decoding_kwargs)
         elif self.backend == "llamacpp":
-            metadata = self.model(full_prompt, **generation_kwargs)
+            metadata = self.model(full_prompt, **generating_kwargs)
             answer = metadata["choices"][0]["text"]
         elif self.backend == "exllamav2":
             metadata = self.generator.generate_simple(
-                full_prompt, **generation_kwargs)
+                full_prompt, **generating_kwargs)
         self.history.append(("assistant", answer))
         return answer, metadata
 
@@ -308,6 +338,15 @@ class BackendAgnosticLanguageModel(object):
                 model_kwargs["config"] = self.config
 
 
+class Agent(object):
+    """
+    Class, representing an agent.
+    """
+
+    def __init__(self, llm_instance: LanguageModelInstance, ) -> None:
+        pass
+
+
 """
 Evaluation and experimentation
 """
@@ -328,7 +367,7 @@ TESTING_CONFIGS = {
         "generation_kwargs": {
             "prompt": "Create a Python script for scraping the first 10 google hits for a search query.",
             "history_merger": lambda history: "\n".join(f"<|im_start|>{entry[0]}\n{entry[1]}<|im_end|>" for entry in history) + "\n",
-            "generation_kwargs": {"max_tokens": 1024}
+            "generating_kwargs": {"max_tokens": 1024}
         }
     },
     "llamacpp_openhermes-2.5-mistral-7b-16k": {
@@ -344,7 +383,7 @@ TESTING_CONFIGS = {
         "generation_kwargs": {
             "prompt": "Create a Python script for scraping the first 10 google hits for a search query.",
             "history_merger": lambda history: "\n".join(f"<|im_start|>{entry[0]}\n{entry[1]}<|im_end|>" for entry in history) + "\n",
-            "generation_kwargs": {"max_tokens": 2048}
+            "generating_kwargs": {"max_tokens": 2048}
         }
     },
     #########################
@@ -364,7 +403,7 @@ TESTING_CONFIGS = {
         "generation_kwargs": {
             "prompt": "Create a Python script for scraping the first 10 google hits for a search query.",
             "history_merger": lambda history: "\n".join(f"<|im_start|>{entry[0]}\n{entry[1]}<|im_end|>" for entry in history) + "\n",
-            "generation_kwargs": {"max_new_tokens": 1024}
+            "generating_kwargs": {"max_new_tokens": 1024}
         }
     },
     "ctransformers_openhermes-2.5-mistral-7b-16k": {
@@ -381,7 +420,7 @@ TESTING_CONFIGS = {
         "generation_kwargs": {
             "prompt": "Create a Python script for scraping the first 10 google hits for a search query.",
             "history_merger": lambda history: "\n".join(f"<|im_start|>{entry[0]}\n{entry[1]}<|im_end|>" for entry in history) + "\n",
-            "generation_kwargs": {"max_new_tokens": 2048}
+            "generating_kwargs": {"max_new_tokens": 2048}
         }
     },
     #########################
@@ -401,7 +440,7 @@ TESTING_CONFIGS = {
         "generation_kwargs": {
             "prompt": "Create a Python script for scraping the first 10 google hits for a search query.",
             "history_merger": lambda history: "\n".join(f"<|im_start|>{entry[0]}\n{entry[1]}<|im_end|>" for entry in history) + "\n",
-            "generation_kwargs": {"max_tokens": 1024}
+            "generating_kwargs": {"max_tokens": 1024}
         }
     },
     "langchain_llamacpp_openhermes-2.5-mistral-7b-16k": {
@@ -418,7 +457,7 @@ TESTING_CONFIGS = {
         "generation_kwargs": {
             "prompt": "Create a Python script for scraping the first 10 google hits for a search query.",
             "history_merger": lambda history: "\n".join(f"<|im_start|>{entry[0]}\n{entry[1]}<|im_end|>" for entry in history) + "\n",
-            "generation_kwargs": {"max_tokens": 2048}
+            "generating_kwargs": {"max_tokens": 2048}
         }
     },
     #########################
@@ -438,7 +477,9 @@ TESTING_CONFIGS = {
         "generation_kwargs": {
             "prompt": "Create a Python script for scraping the first 10 google hits for a search query.",
             "history_merger": lambda history: "\n".join(f"<|im_start|>{entry[0]}\n{entry[1]}<|im_end|>" for entry in history) + "\n",
-            "generation_kwargs": {"max_new_tokens": 1024}
+            "tokenizing_kwargs": {"return_tensors": "pt"},
+            "generating_kwargs": {"max_new_tokens": 1024},
+            "decoding_kwargs": {"skip_special_tokens": True}
         }
     },
     "autogptq_openhermes-2.5-mistral-7b-16k": {
@@ -455,7 +496,9 @@ TESTING_CONFIGS = {
         "generation_kwargs": {
             "prompt": "Create a Python script for scraping the first 10 google hits for a search query.",
             "history_merger": lambda history: "\n".join(f"<|im_start|>{entry[0]}\n{entry[1]}<|im_end|>" for entry in history) + "\n",
-            "generation_kwargs": {"max_new_tokens": 2048}
+            "tokenizing_kwargs": {"return_tensors": "pt"},
+            "generating_kwargs": {"max_new_tokens": 2048},
+            "decoding_kwargs": {"skip_special_tokens": True}
         }
     },
     "autogptq_openchat_3.5": {
@@ -471,7 +514,9 @@ TESTING_CONFIGS = {
         },
         "generation_kwargs": {
             "prompt": "Create a Python script for scraping the first 10 google hits for a search query.",
-            "generation_kwargs": {"max_new_tokens": 1024}
+            "tokenizing_kwargs": {"return_tensors": "pt"},
+            "generating_kwargs": {"max_new_tokens": 1024},
+            "decoding_kwargs": {"skip_special_tokens": True}
         }
     },
 }
@@ -494,7 +539,9 @@ CURRENTLY_NOT_WORKING = {
         "generation_kwargs": {
             "prompt": "Create a Python script for scraping the first 10 google hits for a search query.",
             "history_merger": lambda history: "\n".join(f"<|im_start|>{entry[0]}\n{entry[1]}<|im_end|>" for entry in history) + "\n",
-            "generation_kwargs": {"max_new_tokens": 128}
+            "tokenizing_kwargs": {"return_tensors": "pt"},
+            "generation_kwargs": {"max_new_tokens": 128},
+            "decoding_kwargs": {"skip_special_tokens": True}
         }
     },
     "autogptq_stablecode-instruct-alpha-3b": {
@@ -511,8 +558,9 @@ CURRENTLY_NOT_WORKING = {
         "generation_kwargs": {
             "prompt": "Create a Python script for scraping the first 10 google hits for a search query.",
             "history_merger": lambda history: "\n".join(f"<s>{entry[0].replace('user', '###Instruction:').replace('assistant', '###Response:')}\n{entry[1]}<|im_end|>" for entry in history if entry[0] != "system") + "\n",
+            "tokenizing_kwargs": {"return_tensors": "pt"},
             "generation_kwargs": {"max_new_tokens": 128},
-            "tokenizer_kwargs": {"return_token_type_ids": False}
+            "decoding_kwargs": {"skip_special_tokens": True, "return_token_type_ids": False}
         }
     },
     #########################
@@ -592,7 +640,7 @@ def run_model_test(configs: List[str] = None) -> dict:
 
     for config in configs:
         try:
-            coder = BackendAgnosticLanguageModel(
+            coder = LanguageModelInstance(
                 **TESTING_CONFIGS[config]["instance_kwargs"]
             )
 
