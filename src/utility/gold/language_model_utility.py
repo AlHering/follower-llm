@@ -344,11 +344,24 @@ class Agent(object):
     """
 
     def __init__(self,
-                 general_llm: LanguageModelInstance) -> None:
+                 general_llm: LanguageModelInstance,
+                 dedicated_planner_llm: LanguageModelInstance = None,
+                 dedicated_actor_llm: LanguageModelInstance = None,
+                 dedicated_oberserver_llm: LanguageModelInstance = None) -> None:
         """
         Initiation method.
         :param general_llm: LanguageModelInstance for general tasks.
+        :param dedicated_planner_llm: LanguageModelInstance for planning.
+            Defaults to None in which case the general LLM is used for this task.
+        :param dedicated_actor_llm: LanguageModelInstance for acting.
+            Defaults to None in which case the general LLM is used for this task.
+        :param dedicated_oberserver_llm: LanguageModelInstance for observing.
+            Defaults to None in which case the general LLM is used for this task.
         """
+        self.general_llm = general_llm
+        self.planner_llm = self.general_llm if dedicated_planner_llm is None else dedicated_planner_llm
+        self.actor_llm = self.general_llm if dedicated_actor_llm is None else dedicated_actor_llm
+        self.observer_llm = self.general_llm if dedicated_oberserver_llm is None else dedicated_oberserver_llm
 
 
 """
