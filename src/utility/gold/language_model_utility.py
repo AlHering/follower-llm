@@ -371,8 +371,7 @@ class Agent(object):
                 "general": { checks: <number of validation runs>, llm: <model instance for validation> },
                 "planner": ...
             }.
-            If only the number of checks is supplied, the model instance responsible for the task validates
-            its own responses.
+            If only the number of checks is supplied, the general model instance is used.
         """
         self.general_llm = general_llm
         self.tools = tools
@@ -393,18 +392,12 @@ class Agent(object):
                 "general": { checks: <number of validation runs>, llm: <model instance for validation> },
                 "planner": ...
             }.
-            If only the number of checks is supplied, the model instance responsible for the task validates
-            its own responses.
+            If only the number of checks is supplied, the general model instance is used.
         :return: Parsed validation dictionary.
         """
         for handler in unparsed_dict:
             if "checks" in unparsed_dict[handler] and not "llm" in unparsed_dict[handler]:
-                unparsed_dict[handler]["llm"] = {
-                    "general": self.general_llm,
-                    "planner": self.planner_llm,
-                    "actor": self.actor_llm,
-                    "observer": self.observer_llm
-                }[handler]
+                unparsed_dict[handler]["llm"] = self.general_llm
         return unparsed_dict
 
     def loop(self, start_prompt: str) -> Any:
