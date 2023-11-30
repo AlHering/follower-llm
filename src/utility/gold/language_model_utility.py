@@ -111,7 +111,10 @@ class LanguageModelInstance(object):
                  config_kwargs: dict = None,
                  default_system_prompt: str = "You are a friendly and helpful assistant answering questions based on the context provided.",
                  use_history: bool = True,
-                 history: List[Tuple[str, str, dict]] = None
+                 history: List[Tuple[str, str, dict]] = None,
+                 encoding_kwargs: dict = None,
+                 generating_kwargs: dict = None,
+                 decoding_kwargs: dict = None
                  ) -> None:
         """
         Initiation method.
@@ -135,6 +138,15 @@ class LanguageModelInstance(object):
             Defaults to True.
         :param history: Interaction history as list of (<role>, <message>, <metadata>)-tuples tuples.
             Defaults to None.
+        :param encoding_kwargs: Kwargs for encoding in the generation process as dictionary.
+            Defaults to None in which case an empty dictionary is created and can be filled depending on the backend in the 
+            different initation methods.
+        :param generating_kwargs: Kwargs for generating in the generation process as dictionary.
+            Defaults to None in which case an empty dictionary is created and can be filled depending on the backend in the 
+            different initation methods.
+        :param decoding_kwargs: Kwargs for decoding in the generation process as dictionary.
+            Defaults to None in which case an empty dictionary is created and can be filled depending on the backend in the 
+            different initation methods.
         """
         self.backend = backend
         self.system_prompt = default_system_prompt
@@ -157,6 +169,10 @@ class LanguageModelInstance(object):
         self.use_history = use_history
         self.history = [{"system", self.system_prompt, {
             "intitated": dt.now()}}] if history is None else history
+
+        self.encoding_kwargs = {} if encoding_kwargs is None else encoding_kwargs
+        self.generating_kwargs = {} if generating_kwargs is None else generating_kwargs
+        self.decoding_kwargs = {} if decoding_kwargs is None else decoding_kwargs
 
         initiation_kwargs = {
             "model_file": model_file,
@@ -301,6 +317,10 @@ class LanguageModelInstance(object):
             self.history = [self.history[0]]
         self.history.append(("user", prompt))
         full_prompt = history_merger(self.history)
+
+        encoding_kwargs = self.encoding_kwargs if encoding_kwargs is None else encoding_kwargs
+        generating_kwargs = self.generating_kwargs if generating_kwargs is None else generating_kwargs
+        decoding_kwargs = self.decoding_kwargs if decoding_kwargs is None else decoding_kwargs
 
         metadata = None
         answer = None
