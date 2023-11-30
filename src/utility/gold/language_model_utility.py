@@ -343,7 +343,8 @@ class Agent(object):
                  cache: List[Tuple[str, str, dict]] = None,
                  dedicated_planner_llm: LanguageModelInstance = None,
                  dedicated_actor_llm: LanguageModelInstance = None,
-                 dedicated_oberserver_llm: LanguageModelInstance = None) -> None:
+                 dedicated_oberserver_llm: LanguageModelInstance = None,
+                 validation_dict: dict = None) -> None:
         """
         Initiation method.
         :param general_llm: LanguageModelInstance for general tasks.
@@ -357,6 +358,15 @@ class Agent(object):
             Defaults to None in which case the general LLM is used for this task.
         :param dedicated_oberserver_llm: LanguageModelInstance for observing.
             Defaults to None in which case the general LLM is used for this task.
+        :param validation_dict: Validation dictionary, defining how often and which
+            language model instance should be used, to validate the other's responses.
+            Should be of the form 
+            {
+                "general": { checks: <number of validation runs>, llm: <model instance for validation> },
+                "planner": ...
+            }.
+            If only the number of checks is supplied, the model instance responsible for the task validates
+            its own responses.
         """
         self.general_llm = general_llm
         self.tools = tools
@@ -364,6 +374,32 @@ class Agent(object):
         self.planner_llm = self.general_llm if dedicated_planner_llm is None else dedicated_planner_llm
         self.actor_llm = self.general_llm if dedicated_actor_llm is None else dedicated_actor_llm
         self.observer_llm = self.general_llm if dedicated_oberserver_llm is None else dedicated_oberserver_llm
+        self.validation_dict = None if validation_dict is None else self._parse_validation_dict(
+            unparsed_dict=validation_dict)
+
+    def _parse_validation_dict(self, unparsed_dict: dict) -> dict:
+        """
+        Method for parsing the validation dictionary.
+        :param unparsed_dict: Unparsed validation dictionary, defining how often and which
+            language model instance should be used, to validate the other's responses.
+            Should be of the form 
+            {
+                "general": { checks: <number of validation runs>, llm: <model instance for validation> },
+                "planner": ...
+            }.
+            If only the number of checks is supplied, the model instance responsible for the task validates
+            its own responses.
+        :return: Parsed validation dictionary.
+        """
+        for handler in unparsed_dict:
+            if "checks" in unparsed_dict[handler] and not "llm" in unparsed_dict[handler]:
+                unparsed_dict[handler]["llm"] = {
+                    "general": self.general_llm,
+                    "planner": self.planner_llm,
+                    "actor": self.actor_llm,
+                    "observer": self.observer_llm
+                }[handler]
+        return unparsed_dict
 
     def loop(self, start_prompt: str) -> Any:
         """
