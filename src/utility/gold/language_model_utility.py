@@ -110,6 +110,7 @@ class LanguageModelInstance(object):
                  config_path: str = None,
                  config_kwargs: dict = None,
                  default_system_prompt: str = "You are a friendly and helpful assistant answering questions based on the context provided.",
+                 use_history: bool = True,
                  history: List[Tuple[str, str, dict]] = None
                  ) -> None:
         """
@@ -130,6 +131,8 @@ class LanguageModelInstance(object):
             Defaults to None.
         :param default_system_prompt: Default system prompt.
             Defaults to a standard system prompt.
+        :param use_history: Flag, declaring whether to use the history.
+            Defaults to True.
         :param history: Interaction history as list of (<role>, <message>, <metadata>)-tuples tuples.
             Defaults to None.
         """
@@ -151,6 +154,7 @@ class LanguageModelInstance(object):
 
         self.generator = None
 
+        self.use_history = use_history
         self.history = [{"system", self.system_prompt, {
             "intitated": dt.now()}}] if history is None else history
 
@@ -293,6 +297,8 @@ class LanguageModelInstance(object):
             Defaults to None.
         :return: Tuple of textual answer and metadata.
         """
+        if not self.use_history:
+            self.history = [self.history[0]]
         self.history.append(("user", prompt))
         full_prompt = history_merger(self.history)
 
