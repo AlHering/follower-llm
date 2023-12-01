@@ -440,12 +440,7 @@ class Agent(object):
         """
         if self.tools is None:
             return None
-        tool_guide = "\n\n"
-        for tool in self.tools:
-            arguments = ", ".join(
-                f"{arg.name}: {arg.type}" for arg in tool.arguments)
-            tool_guide += f"{tool.name}: {tool.func.__name__}({arguments}) -> {tool.return_type} - {tool.description}" + "\n\n"
-        return tool_guide
+        return "\n\n" + "\n\n".join(tool.get_guide() for tool in self.tools) + "\n\n"
 
     def loop(self, start_prompt: str) -> Any:
         """
