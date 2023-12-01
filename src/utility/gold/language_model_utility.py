@@ -87,6 +87,16 @@ class AgentTool(object):
     description: str
     func: Callable
     arguments: List[ToolArgument]
+    return_type: Type
+
+    def get_guide(self) -> str:
+        """
+        Method for acquiring the tool guide.
+        :return tool guide as string.
+        """
+        arguments = ", ".join(
+            f"{arg.name}: {arg.type}" for arg in self.arguments)
+        return f"{self.name}: {self.func.__name__}({arguments}) -> {self.return_type} - {self.description}"
 
     def __call__(self) -> Any:
         """
@@ -395,12 +405,16 @@ class Agent(object):
         """
         self.general_llm = general_llm
         self.tools = tools
+        self.tool_guide = self._create_tool_guide()
         self.cache = cache
         self.planner_llm = self.general_llm if dedicated_planner_llm is None else dedicated_planner_llm
         self.actor_llm = self.general_llm if dedicated_actor_llm is None else dedicated_actor_llm
         self.observer_llm = self.general_llm if dedicated_oberserver_llm is None else dedicated_oberserver_llm
         self.validation_dict = None if validation_dict is None else self._parse_validation_dict(
             unparsed_dict=validation_dict)
+
+        for llm in [self.general_llm, self.planner_llm, self.actor_llm, self.observer_llm]:
+            llm.use_history = False
 
     def _parse_validation_dict(self, unparsed_dict: dict) -> dict:
         """
@@ -420,14 +434,27 @@ class Agent(object):
                 unparsed_dict[handler]["llm"] = self.general_llm
         return unparsed_dict
 
+    def _create_tool_guide(self) -> Optional[str]:
+        """
+        Method for creating a tool guide.
+        """
+        if self.tools is None:
+            return None
+        tool_guide = "\n\n"
+        for tool in self.tools:
+            arguments = ", ".join(
+                f"{arg.name}: {arg.type}" for arg in tool.arguments)
+            tool_guide += f"{tool.name}: {tool.func.__name__}({arguments}) -> {tool.return_type} - {tool.description}" + "\n\n"
+        return tool_guide
+
     def loop(self, start_prompt: str) -> Any:
         """
         Method for starting handler loop.
         :param start_prompt: Start prompt.
         :return: Answer.
         """
-        self.cache.append(("start", start_prompt, {"timestamp": dt.now()}))
-        while not self.cache[-1][0] == "finished":
+        self.cache.append(("user", start_prompt, {"timestamp": dt.now()}))
+        while not self.cache[-1][1] == "FINISHED":
             for step in [self.plan, self.act, self.observe]:
                 step()
                 self.report()
