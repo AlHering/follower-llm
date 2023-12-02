@@ -495,6 +495,7 @@ class Agent(object):
                 Plan out this step. {self.planner_answer_format}
                 """
             )
+        # TODO: Add validation
         self.cache.append("planner", answer, metadata)
 
     def act(self) -> Any:
@@ -530,7 +531,28 @@ class Agent(object):
         Method for handling an oberservation step.
         :return: Answer.
         """
-        pass
+        current_step = "STEP 1" if self.cache[-3][0] == "general" else self.cache[-3][1]
+        planner_answer: self.cache[-2][1]
+        actor_answer: self.cache[-1][1]
+        self.cache.append("observer", *self.observer_llm.generate(
+            f"""The current step is {current_step}.
+            
+            An assistant created the following plan:
+            {planner_answer}
+
+            Another assistant implemented this plan as follows:
+            {actor_answer}
+
+            Validate, wether the current step is solved. Answer in only one word:
+            If the solution is correct and this was the last step, answer 'FINISHED'.
+            If the solution is correct but there are more steps, answer 'NEXT'.
+            If the solution is not correct, answer the current step in the format 'CURRENT'.
+            Your answer should be one of ['FINISHED', 'NEXT', 'CURRENT']
+            """
+        ))
+        # TODO: Add validation and error handling.
+        self.cache.append("system", {"FINISHED": "FINISHED", "NEXT": "NEXT", "CURRENT": "CURRENT"}[
+                          self.cache[-1][1].replace("'", "")], {"timestamp": dt.now()})
 
     def report(self) -> None:
         """
