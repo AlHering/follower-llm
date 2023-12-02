@@ -391,7 +391,7 @@ class Agent(object):
         :param general_llm: LanguageModelInstance for general tasks.
         :param tools: List of tools to be used by the agent.
             Defaults to None in which case no tools are used.
-        :param cache: Cache as list of (<step>, <prompt>, <metadata>)-tuples tuples.
+        :param cache: Cache as list of (<hanlder>, <prompt>, <metadata>)-tuples tuples.
             Defaults to None.
         :param dedicated_planner_llm: LanguageModelInstance for planning.
             Defaults to None in which case the general LLM is used for this task.
