@@ -420,9 +420,13 @@ class Agent(object):
 
         self.system_prompt = f"""You are a helpful assistant. You have access to the following tools: {self.tool_guide} Your goal is to help the user as best as you can."""
 
-        for llm in [self.general_llm, self.planner_llm, self.actor_llm, self.observer_llm]:
-            llm.use_history = False
-            llm.system_prompt = self.system_prompt
+        self.general_llm.use_history = False
+        self.general_llm.system_prompt = self.system_prompt
+
+        self.planner_answer_format = """Answer in the following format:
+            THOUGHT: Formulate what you want to do.
+            TOOL: Which tool to use. Should be one of [{', '.join(tool.name for tool in self.tools)}]. Only add this line if you want to use a tool in this step.
+            INPUTS: The inputs for the tool, separated by a comma. Only add this line if you want to use a tool in this step."""
 
     def _parse_validation_dict(self, unparsed_dict: dict) -> dict:
         """
@@ -460,12 +464,17 @@ class Agent(object):
         kickoff_prompt = self.base_prompt + """Which steps need to be taken?
         Answer in the following format:
 
-        STEP 1: Describe the first step. If you want to use tools, describe which tools to use.
+        STEP 1: Describe the first step. If you want to use a tools, describe how to use it. Use only one tool per step.
         STEP 2: ...
         """
         self.cache.append(("system", kickoff_prompt, {"timestamp": dt.now()}))
         self.cache.append(
             ("general", *self.general_llm.generate(kickoff_prompt)))
+
+        self.system_prompt += f"\n\n The plan is as follows:\n{self.cache[-1][1]}"
+        for llm in [self.planner_llm, self.actor_llm, self.observer_llm]:
+            llm.use_history = False
+            llm.system_prompt = self.system_prompt
         while not self.cache[-1][1] == "FINISHED":
             for step in [self.plan, self.act, self.observe]:
                 step()
@@ -476,7 +485,17 @@ class Agent(object):
         Method for handling an planning step.
         :return: Answer.
         """
-        pass
+        if self.cache[-1][0] == "general":
+            answer, metadata = self.planner_llm.generate(
+                f"Plan out STEP 1. {self.planner_answer_format}"
+            )
+        else:
+            answer, metadata = self.planner_llm.generate(
+                f"""The current step is {self.cache[-1][1]}
+                Plan out this step. {self.planner_answer_format}
+                """
+            )
+        self.cache.append("planner", answer, metadata)
 
     def act(self) -> Any:
         """
