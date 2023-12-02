@@ -522,7 +522,7 @@ class Agent(object):
                               "timestamp": dt.now(), "tool_used": tool.name, "arguments_used": inputs})
         else:
             self.cache.append("actor", *self.actor_llm.generate(
-                f"You are a helpful assistant. Solve the following task: {thought}.\n Answer in following format:\nTHOUGHT: Describe your thoughts on the task.\nRESULT: State your result for the task."
+                f"Solve the following task: {thought}.\n Answer in following format:\nTHOUGHT: Describe your thoughts on the task.\nRESULT: State your result for the task."
             ))
 
     def observe(self) -> Any:
