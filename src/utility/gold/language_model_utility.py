@@ -423,10 +423,10 @@ class Agent(object):
         self.general_llm.use_history = False
         self.general_llm.system_prompt = self.system_prompt
 
-        self.planner_answer_format = """Answer in the following format:
-            THOUGHT: Formulate what you want to do.
-            TOOL: Which tool to use. Should be one of [{', '.join(tool.name for tool in self.tools)}]. Only add this line if you want to use a tool in this step.
-            INPUTS: The inputs for the tool, separated by a comma. Only add this line if you want to use a tool in this step."""
+        self.planner_answer_format = f"""Answer in the following format:
+            THOUGHT: Formulate precisely what you want to do.
+            TOOL: The name of the tool to use. Should be one of [{', '.join(tool.name for tool in self.tools)}]. Only add this line if you want to use a tool in this step.
+            INPUTS: The inputs for the tool, separated by a comma. Only add arguments if the tool needs them. Only add the arguments appropriate for the tool. Only add this line if you want to use a tool in this step."""
 
     def _parse_validation_dict(self, unparsed_dict: dict) -> dict:
         """
@@ -472,7 +472,7 @@ class Agent(object):
             ("general", *self.general_llm.generate(kickoff_prompt)))
 
         self.system_prompt += f"\n\n The plan is as follows:\n{self.cache[-1][1]}"
-        for llm in [self.planner_llm, self.actor_llm, self.observer_llm]:
+        for llm in [self.planner_llm, self.observer_llm]:
             llm.use_history = False
             llm.system_prompt = self.system_prompt
         while not self.cache[-1][1] == "FINISHED":
@@ -502,7 +502,28 @@ class Agent(object):
         Method for handling an acting step.
         :return: Answer.
         """
-        pass
+        thought = self.cache[-1][1].split("THOUGHT: ")[1].split("\n")[0]
+        if "TOOL: " in self.cache[-1][1] and "INPUTS: " in self.cache[-1][1]:
+            tool = self.cache[-1][1].split("TOOL: ")[1].split("\n")[0]
+            inputs = self.cache[-1][1].split(
+                "TOOL: ")[1].split("\n")[0].strip()
+            for part in [tool, inputs]:
+                if part.endswith("."):
+                    part = part[:-1]
+                part = part.strip()
+            inputs = [inp.strip() for inp in inputs.split(",")]
+            # TODO: Catch tool and input failures and repeat previous step.
+            tool_to_use = [
+                tool_option for tool_option in self.tools if tool.name == tool][0]
+            result = tool_to_use.func(
+                *[arg.type(inputs[index]) for index, arg in enumerate(tool_to_use.arguments)]
+            )
+            self.cache.append("actor", f"THOUGHT: {thought}\nRESULT:{result}", {
+                              "timestamp": dt.now(), "tool_used": tool.name, "arguments_used": inputs})
+        else:
+            self.cache.append("actor", *self.actor_llm.generate(
+                f"You are a helpful assistant. Solve the following task: {thought}.\n Answer in following format:\nTHOUGHT: Describe your thoughts on the task.\nRESULT: State your result for the task."
+            ))
 
     def observe(self) -> Any:
         """
