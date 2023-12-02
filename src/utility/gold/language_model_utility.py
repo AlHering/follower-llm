@@ -332,9 +332,10 @@ class LanguageModelInstance(object):
         generating_kwargs = self.generating_kwargs if generating_kwargs is None else generating_kwargs
         decoding_kwargs = self.decoding_kwargs if decoding_kwargs is None else decoding_kwargs
 
-        metadata = None
-        answer = None
+        metadata = {}
+        answer = ""
 
+        start = dt.now()
         if self.backend == "ctransformers" or self.backend == "langchain_llamacpp":
             metadata = self.model(full_prompt, **generating_kwargs)
         elif self.backend == "transformers" or self.backend == "autogptq":
@@ -351,6 +352,10 @@ class LanguageModelInstance(object):
             metadata = self.generator.generate_simple(
                 full_prompt, **generating_kwargs)
         self.history.append(("assistant", answer))
+
+        metadata.update({"processing_time": dt.now() -
+                        start, "timestamp": dt.now()})
+
         return answer, metadata
 
     """
