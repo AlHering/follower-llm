@@ -413,8 +413,11 @@ class Agent(object):
         self.validation_dict = None if validation_dict is None else self._parse_validation_dict(
             unparsed_dict=validation_dict)
 
+        self.system_prompt = f"""You are a helpful assistant. You have access to the following tools: {self.tool_guide} Your goal is to help the user as best as you can."""
+
         for llm in [self.general_llm, self.planner_llm, self.actor_llm, self.observer_llm]:
             llm.use_history = False
+            llm.system_prompt = self.system_prompt
 
     def _parse_validation_dict(self, unparsed_dict: dict) -> dict:
         """
@@ -449,6 +452,15 @@ class Agent(object):
         :return: Answer.
         """
         self.cache.append(("user", start_prompt, {"timestamp": dt.now()}))
+        kickoff_prompt = self.base_prompt + """Which steps need to be taken?
+        Answer in the following format:
+
+        STEP 1: Describe the first step. If you want to use tools, describe which tools to use.
+        STEP 2: ...
+        """
+        self.cache.append(("system", kickoff_prompt, {"timestamp": dt.now()}))
+        self.cache.append(
+            ("general", *self.general_llm.generate(kickoff_prompt)))
         while not self.cache[-1][1] == "FINISHED":
             for step in [self.plan, self.act, self.observe]:
                 step()
