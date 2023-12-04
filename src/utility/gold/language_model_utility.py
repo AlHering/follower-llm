@@ -47,6 +47,12 @@ ctransformers - transformers C bindings, Cuda support (ctransformers[cuda])
 - GPU: ctransformers[cuda]==0.2.27 or https://github.com/jllllll/ctransformers-cuBLAS-wheels/releases/download/AVX2/ctransformers-0.2.27+cu117-py3-none-any.whl
 """
 
+
+"""
+Model instantiation functions
+"""
+
+
 """
 Abstractions
 """
