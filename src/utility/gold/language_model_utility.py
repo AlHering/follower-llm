@@ -105,6 +105,18 @@ class AgentTool(object):
         return self.func(**{arg.name: arg.value for arg in self.arguments})
 
 
+class AgentMemory(object):
+    """
+    Class, representing memory.
+    """
+
+    def __init__(self) -> None:
+        """
+        Initiation method.
+        """
+        pass
+
+
 class LanguageModelInstance(object):
     """
     Language model class.
