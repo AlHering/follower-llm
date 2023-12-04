@@ -9,6 +9,7 @@
 import os
 import traceback
 from typing import List, Tuple, Any, Callable, Optional, Type
+from uuid import uuid4
 from datetime import datetime as dt
 from src.configuration import configuration as cfg
 
@@ -110,9 +111,16 @@ class AgentMemory(object):
     Class, representing memory.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, backend: str = "cache", stack: list = None, path: str = None, uuid: str = None) -> None:
         """
         Initiation method.
+        :param backend: Memory backend. Defaults to "cache".
+        :param stack: Stack to initialize memory with.
+            Defaults to None.
+        :param path: Path for reading and writing stack, if the backend supports it.
+            Defaults to None.
+        :param uuid: UUID for identifying memory object.
+            Defaults to None, in which case a new UUID is generated.
         """
         pass
 
