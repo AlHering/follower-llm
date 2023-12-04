@@ -177,8 +177,8 @@ class LanguageModelInstance(object):
         self.generator = None
 
         self.use_history = use_history
-        self.history = [{"system", self.system_prompt, {
-            "intitated": dt.now()}}] if history is None else history
+        self.history = [("system", self.system_prompt, {
+            "intitated": dt.now()})] if history is None else history
 
         self.encoding_kwargs = {} if encoding_kwargs is None else encoding_kwargs
         self.generating_kwargs = {} if generating_kwargs is None else generating_kwargs
