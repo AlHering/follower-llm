@@ -381,7 +381,7 @@ class Agent(object):
     def __init__(self,
                  general_llm: LanguageModelInstance,
                  tools: List[AgentTool] = None,
-                 cache: List[Tuple[str, str, dict]] = None,
+                 memory: List[Tuple[str, str, dict]] = None,
                  dedicated_planner_llm: LanguageModelInstance = None,
                  dedicated_actor_llm: LanguageModelInstance = None,
                  dedicated_oberserver_llm: LanguageModelInstance = None) -> None:
@@ -390,7 +390,7 @@ class Agent(object):
         :param general_llm: LanguageModelInstance for general tasks.
         :param tools: List of tools to be used by the agent.
             Defaults to None in which case no tools are used.
-        :param cache: Cache as list of (<hanlder>, <prompt>, <metadata>)-tuples tuples.
+        :param memory: Memory to use.
             Defaults to None.
         :param dedicated_planner_llm: LanguageModelInstance for planning.
             Defaults to None in which case the general LLM is used for this task.
@@ -402,7 +402,7 @@ class Agent(object):
         self.general_llm = general_llm
         self.tools = tools
         self.tool_guide = self._create_tool_guide()
-        self.cache = cache
+        self.memory = memory
         self.planner_llm = self.general_llm if dedicated_planner_llm is None else dedicated_planner_llm
         self.actor_llm = self.general_llm if dedicated_actor_llm is None else dedicated_actor_llm
         self.observer_llm = self.general_llm if dedicated_oberserver_llm is None else dedicated_oberserver_llm
@@ -431,22 +431,22 @@ class Agent(object):
         :param start_prompt: Start prompt.
         :return: Answer.
         """
-        self.cache.append(("user", start_prompt, {"timestamp": dt.now()}))
+        self.memory.add(("user", start_prompt, {"timestamp": dt.now()}))
         kickoff_prompt = self.base_prompt + """Which steps need to be taken?
         Answer in the following format:
 
         STEP 1: Describe the first step. If you want to use a tools, describe how to use it. Use only one tool per step.
         STEP 2: ...
         """
-        self.cache.append(("system", kickoff_prompt, {"timestamp": dt.now()}))
-        self.cache.append(
+        self.memory.add(("system", kickoff_prompt, {"timestamp": dt.now()}))
+        self.memory.add(
             ("general", *self.general_llm.generate(kickoff_prompt)))
 
-        self.system_prompt += f"\n\n The plan is as follows:\n{self.cache[-1][1]}"
+        self.system_prompt += f"\n\n The plan is as follows:\n{self.memory.stack[-1][1]}"
         for llm in [self.planner_llm, self.observer_llm]:
             llm.use_history = False
             llm.system_prompt = self.system_prompt
-        while not self.cache[-1][1] == "FINISHED":
+        while not self.memory.stack[-1][1] == "FINISHED":
             for step in [self.plan, self.act, self.observe]:
                 step()
                 self.report()
@@ -456,28 +456,28 @@ class Agent(object):
         Method for handling an planning step.
         :return: Answer.
         """
-        if self.cache[-1][0] == "general":
+        if self.memory.stack[-1][0] == "general":
             answer, metadata = self.planner_llm.generate(
                 f"Plan out STEP 1. {self.planner_answer_format}"
             )
         else:
             answer, metadata = self.planner_llm.generate(
-                f"""The current step is {self.cache[-1][1]}
+                f"""The current step is {self.memory.stack[-1][1]}
                 Plan out this step. {self.planner_answer_format}
                 """
             )
         # TODO: Add validation
-        self.cache.append("planner", answer, metadata)
+        self.memory.add("planner", answer, metadata)
 
     def act(self) -> Any:
         """
         Method for handling an acting step.
         :return: Answer.
         """
-        thought = self.cache[-1][1].split("THOUGHT: ")[1].split("\n")[0]
-        if "TOOL: " in self.cache[-1][1] and "INPUTS: " in self.cache[-1][1]:
-            tool = self.cache[-1][1].split("TOOL: ")[1].split("\n")[0]
-            inputs = self.cache[-1][1].split(
+        thought = self.memory.stack[-1][1].split("THOUGHT: ")[1].split("\n")[0]
+        if "TOOL: " in self.memory.stack[-1][1] and "INPUTS: " in self.memory.stack[-1][1]:
+            tool = self.memory.stack[-1][1].split("TOOL: ")[1].split("\n")[0]
+            inputs = self.memory.stack[-1][1].split(
                 "TOOL: ")[1].split("\n")[0].strip()
             for part in [tool, inputs]:
                 if part.endswith("."):
@@ -490,10 +490,10 @@ class Agent(object):
             result = tool_to_use.func(
                 *[arg.type(inputs[index]) for index, arg in enumerate(tool_to_use.arguments)]
             )
-            self.cache.append("actor", f"THOUGHT: {thought}\nRESULT:{result}", {
-                              "timestamp": dt.now(), "tool_used": tool.name, "arguments_used": inputs})
+            self.memory.add("actor", f"THOUGHT: {thought}\nRESULT:{result}", {
+                "timestamp": dt.now(), "tool_used": tool.name, "arguments_used": inputs})
         else:
-            self.cache.append("actor", *self.actor_llm.generate(
+            self.memory.add("actor", *self.actor_llm.generate(
                 f"Solve the following task: {thought}.\n Answer in following format:\nTHOUGHT: Describe your thoughts on the task.\nRESULT: State your result for the task."
             ))
 
@@ -502,10 +502,10 @@ class Agent(object):
         Method for handling an oberservation step.
         :return: Answer.
         """
-        current_step = "STEP 1" if self.cache[-3][0] == "general" else self.cache[-3][1]
-        planner_answer: self.cache[-2][1]
-        actor_answer: self.cache[-1][1]
-        self.cache.append("observer", *self.observer_llm.generate(
+        current_step = "STEP 1" if self.memory.stack[-3][0] == "general" else self.memory.stack[-3][1]
+        planner_answer: self.memory.stack[-2][1]
+        actor_answer: self.memory.stack[-1][1]
+        self.memory.add("observer", *self.observer_llm.generate(
             f"""The current step is {current_step}.
             
             An assistant created the following plan:
@@ -522,8 +522,8 @@ class Agent(object):
             """
         ))
         # TODO: Add validation and error handling.
-        self.cache.append("system", {"FINISHED": "FINISHED", "NEXT": "NEXT", "CURRENT": "CURRENT"}[
-                          self.cache[-1][1].replace("'", "")], {"timestamp": dt.now()})
+        self.memory.add("system", {"FINISHED": "FINISHED", "NEXT": "NEXT", "CURRENT": "CURRENT"}[
+            self.memory.stack[-1][1].replace("'", "")], {"timestamp": dt.now()})
 
     def report(self) -> None:
         """
