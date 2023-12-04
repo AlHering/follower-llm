@@ -519,21 +519,6 @@ class LanguageModelInstance(object):
         self.backend = backend
         self.system_prompt = default_system_prompt
 
-        self.config = None
-        self.config_path = config_path
-        self.config_kwargs = config_kwargs
-
-        self.tokenizer = None
-        self.tokenizer_path = tokenizer_path
-        self.tokenizer_kwargs = tokenizer_kwargs
-
-        self.model = None
-        self.model_path = model_path
-        self.model_file = model_file
-        self.model_kwargs = model_kwargs
-
-        self.generator = None
-
         self.use_history = use_history
         self.history = [("system", self.system_prompt, {
             "intitated": dt.now()})] if history is None else history
@@ -542,120 +527,22 @@ class LanguageModelInstance(object):
         self.generating_kwargs = {} if generating_kwargs is None else generating_kwargs
         self.decoding_kwargs = {} if decoding_kwargs is None else decoding_kwargs
 
-        initiation_kwargs = {
-            "model_file": model_file,
-            "model_kwargs": model_kwargs,
-            "tokenizer_path": tokenizer_path,
-            "tokenizer_kwargs": tokenizer_kwargs,
-            "config_path": config_path,
-            "config_kwargs": config_kwargs
-        }
-        {
-            "ctransformers": self._initiate_ctransformers,
-            "transformers": self._initiate_transformers,
-            "llamacpp": self._initiate_llamacpp,
-            "autogptq": self._initiate_autogptq,
-            "exllamav2": self._initiate_exllamav2,
-            "langchain_llamacpp": self._initiate_langchain_llamacpp
+        self.config, self.tokenizer, self.model, self.generator = {
+            "ctransformers": load_ctransformers_model,
+            "transformers": load_transformers_model,
+            "llamacpp": load_llamacpp_model,
+            "autogptq": load_autogptq_model,
+            "exllamav2": load_exllamav2_model,
+            "langchain_llamacpp": load_langchain_llamacpp_model
         }[backend](
             model_path=model_path,
-            **{k: v for k, v in initiation_kwargs.items() if v is not None}
+            model_file=model_file,
+            model_kwargs=model_kwargs,
+            tokenizer_path=tokenizer_path,
+            tokenizer_kwargs=tokenizer_kwargs,
+            config_path=config_path,
+            config_kwargs=config_kwargs
         )
-
-    """
-    Initiation methods
-    """
-
-    def _initiate_ctransformers(self, **kwargs) -> None:
-        """
-        Method for initiating ctransformers based tokenizer and model.
-        :param kwargs: Additional arbitrary keyword arguments.
-        """
-        from ctransformers import AutoConfig as CAutoConfig, AutoModelForCausalLM as CAutoModelForCausalLM, AutoTokenizer as CAutoTokenizer
-
-        self._update_config(CAutoConfig.from_pretrained(
-            model_path_or_repo_id=self.config_path))
-        self.model = CAutoModelForCausalLM.from_pretrained(
-            model_path_or_repo_id=self.model_path, model_file=self.model_file, config=self.config, **self.model_kwargs)
-        # TODO: Currently ctransformers' tokenizer from model is not working.
-        if False and tokenizer_path is not None:
-            if tokenizer_path == model_path:
-                self.tokenizer = CAutoTokenizer.from_pretrained(
-                    self.model, **self.tokenizer_kwargs)
-            else:
-                self.tokenizer = CAutoTokenizer.from_pretrained(
-                    self.tokenizer_path, **self.tokenizer_kwargs)
-
-    def _initiate_transformers(self, **kwargs) -> None:
-        """
-        Method for initiating transformers based tokenizer and model.
-        :param kwargs: Additional arbitrary keyword arguments.
-        """
-        from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
-
-        self._update_config(AutoConfig.from_pretrained(
-            model_path_or_repo_id=self.config_path))
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            pretrained_model_name_or_path=self.tokenizer_path, **self.tokenizer_kwargs) if self.tokenizer_path is not None else None
-        self.model = AutoModelForCausalLM.from_pretrained(
-            pretrained_model_name_or_path=self.model_path, config=self.config, **self.model_kwargs)
-
-    def _initiate_llamacpp(self, **kwargs) -> None:
-        """
-        Method for initiating llamacpp based tokenizer and model.
-        :param kwargs: Additional arbitrary keyword arguments.
-        """
-        try:
-            from llama_cpp_cuda import Llama
-        except ImportError:
-            from llama_cpp import Llama
-
-        self.model = Llama(model_path=os.path.join(
-            self.model_path, self.model_file), **self.model_kwargs)
-
-    def _initiate_autogptq(self, **kwargs) -> None:
-        """
-        Method for initiating autogptq based tokenizer and model.
-        :param kwargs: Additional arbitrary keyword arguments.
-        """
-        from transformers import AutoTokenizer
-        from auto_gptq import AutoGPTQForCausalLM
-
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            self.tokenizer_path, **self.tokenizer_kwargs) if self.tokenizer_path is not None else None
-        self.model = AutoGPTQForCausalLM.from_quantized(
-            self.model_path, **self.model_kwargs)
-
-    def _initiate_exllamav2(self, **kwargs) -> None:
-        """
-        Method for initiating exllamav2 based tokenizer and model.
-        :param kwargs: Additional arbitrary keyword arguments.
-        """
-        from exllamav2 import ExLlamaV2, ExLlamaV2Cache, ExLlamaV2Tokenizer, ExLlamaV2Config
-        from exllamav2.generator import ExLlamaV2BaseGenerator
-
-        if self.config_kwargs is None:
-            self.config_kwargs = {"model_dir": self.model_path}
-        self._update_config(ExLlamaV2Config())
-        self.config.prepare()
-
-        self.model = ExLlamaV2(self.config)
-        self.tokenizer = ExLlamaV2Tokenizer(self.config)
-        cache = ExLlamaV2Cache(self.model)
-        self.model.load_autosplit(cache)
-        self.generator = ExLlamaV2BaseGenerator(
-            self.model, self.tokenizer, cache)
-
-    def _initiate_langchain_llamacpp(self, **kwargs) -> None:
-        """
-        Method for initiating langchain-llamacpp based tokenizer and model.
-        :param kwargs: Additional arbitrary keyword arguments.
-        """
-        from langchain.llms.llamacpp import LlamaCpp
-
-        if self.model_file is not None and not model_path.endswith(self.model_file):
-            model_path = os.path.join(model_path, self.model_file)
-        self.model = LlamaCpp(model_path=model_path, **self.model_kwargs)
 
     """
     Generation methods
