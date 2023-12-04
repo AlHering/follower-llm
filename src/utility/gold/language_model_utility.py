@@ -8,6 +8,7 @@
 """
 import os
 import traceback
+from pydantic import BaseModel
 from typing import List, Tuple, Any, Callable, Optional, Type
 from uuid import uuid4
 from datetime import datetime as dt
@@ -51,14 +52,27 @@ Abstractions
 """
 
 
-class ToolArgument(object):
+class ToolArgument(BaseModel):
     """
     Class, representing a tool argument.
     """
-    name: str
-    type: Type
-    description: str
-    value: Any
+
+    def __init__(self,
+                 name: str,
+                 type: Type,
+                 description: str,
+                 value: Any,) -> None:
+        """
+        Initiation method.
+        :param name: Name of the argument.
+        :param type: Type of the argument.
+        :param description: Description of the argument.
+        :param value: Value of the argument.
+        """
+        self.name = name
+        self.type = type
+        self.description = description
+        self.value = value
 
     def extract(self, input: str) -> bool:
         """
@@ -84,11 +98,26 @@ class AgentTool(object):
     """
     Class, representing a tool.
     """
-    name: str
-    description: str
-    func: Callable
-    arguments: List[ToolArgument]
-    return_type: Type
+
+    def __init__(self,
+                 name: str,
+                 description: str,
+                 func: Callable,
+                 arguments: List[ToolArgument],
+                 return_type: Type) -> None:
+        """
+        Initiation method.
+        :param name: Name of the tool.
+        :param description: Description of the tool.
+        :param func: Function of the tool.
+        :param arguments: Arguments of the tool.
+        :param return_type: Return type of the tool.
+        """
+        self.name = name
+        self.description = description
+        self.func = func
+        self.arguments = arguments
+        self.return_type = return_type
 
     def get_guide(self) -> str:
         """
@@ -158,7 +187,8 @@ class LanguageModelInstance(object):
     """
     Language model class.
     """
-    supported_backends: List[str] = ["ctransformers", "transformers", "llamacpp", "autogptq", "exllamav2", "langchain_llamacpp"]
+    supported_backends: List[str] = ["ctransformers", "transformers",
+                                     "llamacpp", "autogptq", "exllamav2", "langchain_llamacpp"]
 
     def __init__(self,
                  backend: str,
