@@ -110,17 +110,45 @@ class AgentMemory(object):
     """
     Class, representing memory.
     """
+    supported_backends = ["cache"]
 
-    def __init__(self, backend: str = "cache", stack: list = None, path: str = None, uuid: str = None) -> None:
+    def __init__(self, uuid: str = None, backend: str = "cache", stack: list = None, path: str = None) -> None:
         """
         Initiation method.
+        :param uuid: UUID for identifying memory object.
+            Defaults to None, in which case a new UUID is generated.
         :param backend: Memory backend. Defaults to "cache".
+            Check AgentMemory().supported_backends for supported backends.
         :param stack: Stack to initialize memory with.
             Defaults to None.
         :param path: Path for reading and writing stack, if the backend supports it.
             Defaults to None.
-        :param uuid: UUID for identifying memory object.
-            Defaults to None, in which case a new UUID is generated.
+        """
+        self.uuid = uuid4() if uuid is None else uuid
+        self.backend = backend
+
+        self.path = path
+        self.stack = None
+
+    def _initiate_stack(self, stack: list = None) -> None:
+        """
+        Method for initiating stack.
+        :param stack: Stack initialization.
+            Defaults to None.
+        """
+        pass
+
+    def add(self, message: Tuple[str, str, dict]) -> None:
+        """
+        Method to add a message to the stack.
+        :param message: Message tuple, constisting of agent name, message content and message metadata.
+        """
+        pass
+
+    def get(self, position: int) -> Tuple[str, str, dict]:
+        """
+        Method for retrieving message by stack position.
+        :param position: Stack position.
         """
         pass
 
@@ -462,11 +490,11 @@ class Agent(object):
         self.memory.add(
             ("general", *self.general_llm.generate(kickoff_prompt)))
 
-        self.system_prompt += f"\n\n The plan is as follows:\n{self.memory.stack[-1][1]}"
+        self.system_prompt += f"\n\n The plan is as follows:\n{self.memory.get(-1)[1]}"
         for llm in [self.planner_llm, self.observer_llm]:
             llm.use_history = False
             llm.system_prompt = self.system_prompt
-        while not self.memory.stack[-1][1] == "FINISHED":
+        while not self.memory.get(-1)[1] == "FINISHED":
             for step in [self.plan, self.act, self.observe]:
                 step()
                 self.report()
@@ -476,13 +504,13 @@ class Agent(object):
         Method for handling an planning step.
         :return: Answer.
         """
-        if self.memory.stack[-1][0] == "general":
+        if self.memory.get(-1)[0] == "general":
             answer, metadata = self.planner_llm.generate(
                 f"Plan out STEP 1. {self.planner_answer_format}"
             )
         else:
             answer, metadata = self.planner_llm.generate(
-                f"""The current step is {self.memory.stack[-1][1]}
+                f"""The current step is {self.memory.get(-1)[1]}
                 Plan out this step. {self.planner_answer_format}
                 """
             )
@@ -494,10 +522,10 @@ class Agent(object):
         Method for handling an acting step.
         :return: Answer.
         """
-        thought = self.memory.stack[-1][1].split("THOUGHT: ")[1].split("\n")[0]
-        if "TOOL: " in self.memory.stack[-1][1] and "INPUTS: " in self.memory.stack[-1][1]:
-            tool = self.memory.stack[-1][1].split("TOOL: ")[1].split("\n")[0]
-            inputs = self.memory.stack[-1][1].split(
+        thought = self.memory.get(-1)[1].split("THOUGHT: ")[1].split("\n")[0]
+        if "TOOL: " in self.memory.get(-1)[1] and "INPUTS: " in self.memory.get(-1)[1]:
+            tool = self.memory.get(-1)[1].split("TOOL: ")[1].split("\n")[0]
+            inputs = self.memory.get(-1)[1].split(
                 "TOOL: ")[1].split("\n")[0].strip()
             for part in [tool, inputs]:
                 if part.endswith("."):
@@ -522,9 +550,10 @@ class Agent(object):
         Method for handling an oberservation step.
         :return: Answer.
         """
-        current_step = "STEP 1" if self.memory.stack[-3][0] == "general" else self.memory.stack[-3][1]
-        planner_answer: self.memory.stack[-2][1]
-        actor_answer: self.memory.stack[-1][1]
+        current_step = "STEP 1" if self.memory.get(
+            -3)[0] == "general" else self.memory.get(-3)[1]
+        planner_answer: self.memory.get(-2)[1]
+        actor_answer: self.memory.get(-1)[1]
         self.memory.add("observer", *self.observer_llm.generate(
             f"""The current step is {current_step}.
             
@@ -543,7 +572,7 @@ class Agent(object):
         ))
         # TODO: Add validation and error handling.
         self.memory.add("system", {"FINISHED": "FINISHED", "NEXT": "NEXT", "CURRENT": "CURRENT"}[
-            self.memory.stack[-1][1].replace("'", "")], {"timestamp": dt.now()})
+            self.memory.get(-1)[1].replace("'", "")], {"timestamp": dt.now()})
 
     def report(self) -> None:
         """
