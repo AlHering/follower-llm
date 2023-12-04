@@ -110,7 +110,7 @@ class AgentMemory(object):
     """
     Class, representing memory.
     """
-    supported_backends = ["cache"]
+    supported_backends: List[str] = ["cache"]
 
     def __init__(self, uuid: str = None, backend: str = "cache", stack: list = None, path: str = None) -> None:
         """
@@ -124,11 +124,12 @@ class AgentMemory(object):
         :param path: Path for reading and writing stack, if the backend supports it.
             Defaults to None.
         """
+        self.stack = None
         self.uuid = uuid4() if uuid is None else uuid
         self.backend = backend
-
         self.path = path
-        self.stack = None
+
+        self._initiate_stack(stack)
 
     def _initiate_stack(self, stack: list = None) -> None:
         """
@@ -157,6 +158,7 @@ class LanguageModelInstance(object):
     """
     Language model class.
     """
+    supported_backends: List[str] = ["ctransformers", "transformers", "llamacpp", "autogptq", "exllamav2", "langchain_llamacpp"]
 
     def __init__(self,
                  backend: str,
