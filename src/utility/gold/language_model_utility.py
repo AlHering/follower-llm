@@ -384,8 +384,7 @@ class Agent(object):
                  cache: List[Tuple[str, str, dict]] = None,
                  dedicated_planner_llm: LanguageModelInstance = None,
                  dedicated_actor_llm: LanguageModelInstance = None,
-                 dedicated_oberserver_llm: LanguageModelInstance = None,
-                 validation_dict: dict = None) -> None:
+                 dedicated_oberserver_llm: LanguageModelInstance = None) -> None:
         """
         Initiation method.
         :param general_llm: LanguageModelInstance for general tasks.
@@ -399,14 +398,6 @@ class Agent(object):
             Defaults to None in which case the general LLM is used for this task.
         :param dedicated_oberserver_llm: LanguageModelInstance for observing.
             Defaults to None in which case the general LLM is used for this task.
-        :param validation_dict: Validation dictionary, defining how often and which
-            language model instance should be used, to validate the other's responses.
-            Should be of the form 
-            {
-                "general": { checks: <number of validation runs>, llm: <model instance for validation> },
-                "planner": ...
-            }.
-            If only the number of checks is supplied, the general model instance is used.
         """
         self.general_llm = general_llm
         self.tools = tools
@@ -415,8 +406,6 @@ class Agent(object):
         self.planner_llm = self.general_llm if dedicated_planner_llm is None else dedicated_planner_llm
         self.actor_llm = self.general_llm if dedicated_actor_llm is None else dedicated_actor_llm
         self.observer_llm = self.general_llm if dedicated_oberserver_llm is None else dedicated_oberserver_llm
-        self.validation_dict = None if validation_dict is None else self._parse_validation_dict(
-            unparsed_dict=validation_dict)
 
         self.system_prompt = f"""You are a helpful assistant. You have access to the following tools: {self.tool_guide} Your goal is to help the user as best as you can."""
 
@@ -427,24 +416,6 @@ class Agent(object):
             THOUGHT: Formulate precisely what you want to do.
             TOOL: The name of the tool to use. Should be one of [{', '.join(tool.name for tool in self.tools)}]. Only add this line if you want to use a tool in this step.
             INPUTS: The inputs for the tool, separated by a comma. Only add arguments if the tool needs them. Only add the arguments appropriate for the tool. Only add this line if you want to use a tool in this step."""
-
-    def _parse_validation_dict(self, unparsed_dict: dict) -> dict:
-        """
-        Method for parsing the validation dictionary.
-        :param unparsed_dict: Unparsed validation dictionary, defining how often and which
-            language model instance should be used, to validate the other's responses.
-            Should be of the form 
-            {
-                "general": { checks: <number of validation runs>, llm: <model instance for validation> },
-                "planner": ...
-            }.
-            If only the number of checks is supplied, the general model instance is used.
-        :return: Parsed validation dictionary.
-        """
-        for handler in unparsed_dict:
-            if "checks" in unparsed_dict[handler] and not "llm" in unparsed_dict[handler]:
-                unparsed_dict[handler]["llm"] = self.general_llm
-        return unparsed_dict
 
     def _create_tool_guide(self) -> Optional[str]:
         """
