@@ -53,6 +53,278 @@ Model instantiation functions
 """
 
 
+def load_ctransformers_model(model_path: str,
+                             model_file: str = None,
+                             model_kwargs: dict = None,
+                             tokenizer_path: str = None,
+                             tokenizer_kwargs: dict = None,
+                             config_path: str = None,
+                             config_kwargs: dict = None) -> None:
+    """
+    Function for loading ctransformers based model objects.
+    :param model_path: Path to model files.
+    :param model_file: Model file to load.
+        Defaults to None.
+    :param model_kwargs: Model loading kwargs as dictionary.
+        Defaults to None.
+    :param tokenizer_path: Tokenizer path.
+        Defaults to None.
+    :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+        Defaults to None.
+    :param config_path: Config path.
+        Defaults to None.
+    :param config_kwargs: Config loading kwargs as dictionary.
+        Defaults to None.
+    :return: Tuple of config, tokenizer, model and generator object.
+        Note, that all objects that do not belong to the backend will be None.
+    """
+    from ctransformers import AutoConfig as CAutoConfig, AutoModelForCausalLM as CAutoModelForCausalLM, AutoTokenizer as CAutoTokenizer
+
+    config = None
+    tokenizer = None
+    model = None
+    generator = None
+
+    if config_path:
+        config = CAutoConfig.from_pretrained(
+            model_path_or_repo_id=config_path)
+        if config_kwargs is not None:
+            for key in config_kwargs:
+                setattr(config, key, config_kwargs[key])
+
+    model = CAutoModelForCausalLM.from_pretrained(
+        model_path_or_repo_id=model_path, model_file=model_file, config=config, **model_kwargs)
+    # TODO: Currently ctransformers' tokenizer from model is not working.
+    if False and tokenizer_path is not None:
+        if tokenizer_path == model_path:
+            tokenizer = CAutoTokenizer.from_pretrained(
+                model, **tokenizer_kwargs)
+        else:
+            tokenizer = CAutoTokenizer.from_pretrained(
+                tokenizer_path, **tokenizer_kwargs)
+
+    return (config, tokenizer, model, generator)
+
+
+def load_transformers_model(model_path: str,
+                            model_file: str = None,
+                            model_kwargs: dict = None,
+                            tokenizer_path: str = None,
+                            tokenizer_kwargs: dict = None,
+                            config_path: str = None,
+                            config_kwargs: dict = None) -> None:
+    """
+    Function for loading ctransformers based model objects.
+    :param model_path: Path to model files.
+    :param model_file: Model file to load.
+        Defaults to None.
+    :param model_kwargs: Model loading kwargs as dictionary.
+        Defaults to None.
+    :param tokenizer_path: Tokenizer path.
+        Defaults to None.
+    :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+        Defaults to None.
+    :param config_path: Config path.
+        Defaults to None.
+    :param config_kwargs: Config loading kwargs as dictionary.
+        Defaults to None.
+    :return: Tuple of config, tokenizer, model and generator object.
+        Note, that all objects that do not belong to the backend will be None.
+    """
+    from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
+
+    config = None
+    tokenizer = None
+    model = None
+    generator = None
+
+    if config_path:
+        config = AutoConfig.from_pretrained(
+            model_path_or_repo_id=config_path)
+    if config_kwargs is not None:
+        for key in config_kwargs:
+            setattr(config, key, config_kwargs[key])
+
+    tokenizer = AutoTokenizer.from_pretrained(
+        pretrained_model_name_or_path=tokenizer_path, **tokenizer_kwargs) if tokenizer_path is not None else None
+    model = AutoModelForCausalLM.from_pretrained(
+        pretrained_model_name_or_path=model_path, config=config, **model_kwargs)
+
+    return (config, tokenizer, model, generator)
+
+
+def load_llamacpp_model(model_path: str,
+                        model_file: str = None,
+                        model_kwargs: dict = None,
+                        tokenizer_path: str = None,
+                        tokenizer_kwargs: dict = None,
+                        config_path: str = None,
+                        config_kwargs: dict = None) -> None:
+    """
+    Function for loading ctransformers based model objects.
+    :param model_path: Path to model files.
+    :param model_file: Model file to load.
+        Defaults to None.
+    :param model_kwargs: Model loading kwargs as dictionary.
+        Defaults to None.
+    :param tokenizer_path: Tokenizer path.
+        Defaults to None.
+    :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+        Defaults to None.
+    :param config_path: Config path.
+        Defaults to None.
+    :param config_kwargs: Config loading kwargs as dictionary.
+        Defaults to None.
+    :return: Tuple of config, tokenizer, model and generator object.
+        Note, that all objects that do not belong to the backend will be None.
+    """
+    try:
+        from llama_cpp_cuda import Llama
+    except ImportError:
+        from llama_cpp import Llama
+
+    config = None
+    tokenizer = None
+    model = None
+    generator = None
+
+    model = Llama(model_path=os.path.join(
+        model_path, model_file), **model_kwargs)
+
+    return (config, tokenizer, model, generator)
+
+
+def load_autogptq_model(model_path: str,
+                        model_file: str = None,
+                        model_kwargs: dict = None,
+                        tokenizer_path: str = None,
+                        tokenizer_kwargs: dict = None,
+                        config_path: str = None,
+                        config_kwargs: dict = None) -> None:
+    """
+    Function for loading ctransformers based model objects.
+    :param model_path: Path to model files.
+    :param model_file: Model file to load.
+        Defaults to None.
+    :param model_kwargs: Model loading kwargs as dictionary.
+        Defaults to None.
+    :param tokenizer_path: Tokenizer path.
+        Defaults to None.
+    :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+        Defaults to None.
+    :param config_path: Config path.
+        Defaults to None.
+    :param config_kwargs: Config loading kwargs as dictionary.
+        Defaults to None.
+    :return: Tuple of config, tokenizer, model and generator object.
+        Note, that all objects that do not belong to the backend will be None.
+    """
+    from transformers import AutoTokenizer
+    from auto_gptq import AutoGPTQForCausalLM
+
+    config = None
+    tokenizer = None
+    model = None
+    generator = None
+
+    tokenizer = AutoTokenizer.from_pretrained(
+        tokenizer_path, **tokenizer_kwargs) if tokenizer_path is not None else None
+    model = AutoGPTQForCausalLM.from_quantized(
+        model_path, **model_kwargs)
+
+    return (config, tokenizer, model, generator)
+
+
+def load_exllamav2_model(model_path: str,
+                         model_file: str = None,
+                         model_kwargs: dict = None,
+                         tokenizer_path: str = None,
+                         tokenizer_kwargs: dict = None,
+                         config_path: str = None,
+                         config_kwargs: dict = None) -> None:
+    """
+    Function for loading ctransformers based model objects.
+    :param model_path: Path to model files.
+    :param model_file: Model file to load.
+        Defaults to None.
+    :param model_kwargs: Model loading kwargs as dictionary.
+        Defaults to None.
+    :param tokenizer_path: Tokenizer path.
+        Defaults to None.
+    :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+        Defaults to None.
+    :param config_path: Config path.
+        Defaults to None.
+    :param config_kwargs: Config loading kwargs as dictionary.
+        Defaults to None.
+    :return: Tuple of config, tokenizer, model and generator object.
+        Note, that all objects that do not belong to the backend will be None.
+    """
+    from exllamav2 import ExLlamaV2, ExLlamaV2Cache, ExLlamaV2Tokenizer, ExLlamaV2Config
+    from exllamav2.generator import ExLlamaV2BaseGenerator
+
+    config = None
+    tokenizer = None
+    model = None
+    generator = None
+
+    config = ExLlamaV2Config()
+    if config_kwargs is not None:
+        for key in config_kwargs:
+            setattr(config, key, config_kwargs[key])
+    else:
+        setattr(config, "model_dir", model_path)
+    config.prepare()
+
+    model = ExLlamaV2(config)
+    tokenizer = ExLlamaV2Tokenizer(config)
+    cache = ExLlamaV2Cache(model)
+    model.load_autosplit(cache)
+    generator = ExLlamaV2BaseGenerator(
+        model, tokenizer, cache)
+
+    return (config, tokenizer, model, generator)
+
+
+def load_langchain_llamacpp_model(model_path: str,
+                                  model_file: str = None,
+                                  model_kwargs: dict = None,
+                                  tokenizer_path: str = None,
+                                  tokenizer_kwargs: dict = None,
+                                  config_path: str = None,
+                                  config_kwargs: dict = None) -> None:
+    """
+    Function for loading ctransformers based model objects.
+    :param model_path: Path to model files.
+    :param model_file: Model file to load.
+        Defaults to None.
+    :param model_kwargs: Model loading kwargs as dictionary.
+        Defaults to None.
+    :param tokenizer_path: Tokenizer path.
+        Defaults to None.
+    :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+        Defaults to None.
+    :param config_path: Config path.
+        Defaults to None.
+    :param config_kwargs: Config loading kwargs as dictionary.
+        Defaults to None.
+    :return: Tuple of config, tokenizer, model and generator object.
+        Note, that all objects that do not belong to the backend will be None.
+    """
+    from langchain.llms.llamacpp import LlamaCpp
+
+    config = None
+    tokenizer = None
+    model = None
+    generator = None
+
+    if model_file is not None and not model_path.endswith(model_file):
+        model_path = os.path.join(model_path, model_file)
+    model = LlamaCpp(model_path=model_path, **model_kwargs)
+
+    return (config, tokenizer, model, generator)
+
+
 """
 Abstractions
 """
