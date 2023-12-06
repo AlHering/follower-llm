@@ -13,6 +13,7 @@ from typing import List, Tuple, Any, Callable, Optional, Type
 from uuid import uuid4
 from datetime import datetime as dt
 from src.configuration import configuration as cfg
+from filter_mask import FilterMask
 
 # TODO: Plan out and implement common utility.
 """
@@ -413,9 +414,9 @@ class AgentTool(object):
         return self.func(**{arg.name: arg.value for arg in self.arguments})
 
 
-class AgentMemory(object):
+class AgentCache(object):
     """
-    Class, representing memory.
+    Class, representing a message cache.
     """
     supported_backends: List[str] = ["cache"]
 
@@ -424,9 +425,9 @@ class AgentMemory(object):
         Initiation method.
         :param uuid: UUID for identifying memory object.
             Defaults to None, in which case a new UUID is generated.
-        :param backend: Memory backend. Defaults to "cache".
-            Check AgentMemory().supported_backends for supported backends.
-        :param stack: Stack to initialize memory with.
+        :param backend: Cache backend. Defaults to "cache".
+            Check AgentCache().supported_backends for supported backends.
+        :param stack: Stack to initialize cache with.
             Defaults to None.
         :param path: Path for reading and writing stack, if the backend supports it.
             Defaults to None.
@@ -457,6 +458,64 @@ class AgentMemory(object):
         """
         Method for retrieving message by stack position.
         :param position: Stack position.
+        """
+        pass
+
+
+class AgentMemory(object):
+    """
+    Class, representing a longterm memory.
+    """
+    supported_backends: List[str] = ["cache"]
+
+    def __init__(self, uuid: str = None, backend: str = "cache", memories: list = None, path: str = None) -> None:
+        """
+        Initiation method.
+        :param uuid: UUID for identifying memory object.
+            Defaults to None, in which case a new UUID is generated.
+        :param backend: Memory backend. Defaults to "cache".
+            Check AgentMemory().supported_backends for supported backends.
+        :param memories: Memories to initialize memory with.
+            Defaults to None.
+        :param path: Path for reading and writing stack, if the backend supports it.
+            Defaults to None.
+        """
+        self.stack = None
+        self.uuid = uuid4() if uuid is None else uuid
+        self.backend = backend
+        self.path = path
+
+        self._initiate_memory(memories)
+
+    def _initiate_memory(self, memories: list = None) -> None:
+        """
+        Method for initiating memories.
+        :param memories: Memory initialization.
+            Defaults to None.
+        """
+        pass
+
+    def add(self, memory: str, metadata: dict) -> None:
+        """
+        Method to add a memory.
+        :param memory: Memory string.
+        :param metadata: Metadata for memory.
+        """
+        pass
+
+    def get(self, filtermasks: List[FilterMask]) -> Tuple[str, str, dict]:
+        """
+        Method for retrieving message by filtermasks.
+        :param filtermasks: List of filtermasks.
+        """
+        pass
+
+    def retrieve_by_similarity(self, reference: str, filtermasks: List[FilterMask] = None, retrieval_kwargs: dict = None) -> Tuple[str, str, dict]:
+        """
+        Method for retrieving memory by similarity.
+        :param reference: Reference for similarity search.
+        :param filtermasks: List of filtermasks for additional filering.
+        :param retrieval_kwargs: Keyword arguments for retrieval.
         """
         pass
 
