@@ -13,13 +13,13 @@ from src.configuration import configuration as cfg
 from src.utility.gold.basic_sqlalchemy_interface import BasicSQLAlchemyInterface
 from src.utility.bronze import sqlalchemy_utility
 from src.utility.bronze.hashing_utility import hash_text_with_sha256
-from src.model.database_control.data_model import populate_data_instrastructure
-from src.model.ml_model_control.llm_pool import ThreadedLLMPool
+from src.model.database.data_model import populate_data_instrastructure
+from src.model.language_models.llm_pool import ThreadedLLMPool
 from langchain.chains import RetrievalQA
 from src.utility.silver import embedding_utility
 from src.utility.bronze.hashing_utility import hash_text_with_sha256
 from src.utility.silver.file_system_utility import safely_create_path
-from src.model.knowledgebase_control.chromadb_knowledgebase import ChromaKnowledgeBase, KnowledgeBase
+from src.model.knowledgebase.chromadb_knowledgebase import ChromaKnowledgeBase, KnowledgeBase
 
 
 class FollowerLLMController(BasicSQLAlchemyInterface):
