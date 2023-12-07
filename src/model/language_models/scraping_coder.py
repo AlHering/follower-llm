@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 ****************************************************
-*          Basic Language Model Backend            *
+*                   Follower LLM                   *
 *            (c) 2023 Alexander Hering             *
 ****************************************************
 """
+
 import os
 from datetime import datetime as dt
 from src.utility.gold.language_model_utility import Agent, LanguageModelInstance
