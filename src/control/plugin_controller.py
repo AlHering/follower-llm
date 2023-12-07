@@ -10,8 +10,8 @@ import logging
 import traceback
 from typing import Tuple, Optional, Any, List
 from src.configuration import paths
-from src.model.plugin_control.exceptions import PluginImportException
-from src.model.plugin_control.plugins import GenericPlugin
+from src.model.plugin_model.exceptions import PluginImportException
+from src.model.plugin_model.plugins import GenericPlugin
 from src.utility.bronze import json_utility
 from src.utility.silver import file_system_utility
 

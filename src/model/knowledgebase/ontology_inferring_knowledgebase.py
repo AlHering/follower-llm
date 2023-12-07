@@ -9,7 +9,7 @@ import os
 from typing import Any, List
 from langchain.docstore.document import Document
 from src.utility.bronze.hashing_utility import hash_text_with_sha256
-from src.model.knowledgebase_control.abstract_knowledgebase import KnowledgeBase
+from src.model.knowledgebase.abstract_knowledgebase import KnowledgeBase
 from src.utility.bronze import json_utility
 
 

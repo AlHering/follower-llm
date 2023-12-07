@@ -8,7 +8,7 @@
 import os
 import sys
 from typing import Any, Optional, List
-from src.model.plugin_control.exceptions import PluginImportException, PluginRuntimeException
+from src.model.plugin_model.exceptions import PluginImportException, PluginRuntimeException
 from src.utility.bronze import json_utility
 from src.utility.silver import file_system_utility, environment_utility
 

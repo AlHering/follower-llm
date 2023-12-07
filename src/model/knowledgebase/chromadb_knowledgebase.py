@@ -14,7 +14,7 @@ from langchain.vectorstores import Chroma
 from langchain.vectorstores.base import VectorStoreRetriever
 from src.configuration import configuration as cfg
 from src.utility.bronze.hashing_utility import hash_text_with_sha256
-from src.model.knowledgebase_control.abstract_knowledgebase import KnowledgeBase
+from src.model.knowledgebase.abstract_knowledgebase import KnowledgeBase
 from src.utility.silver import embedding_utility
 
 
