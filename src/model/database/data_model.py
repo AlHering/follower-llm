@@ -105,10 +105,6 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
                     comment="ID of the asset.")
         url = Column(String,
                      comment="URL for the asset.")
-        source = Column(String,
-                        comment="Main metadata source for the asset.")
-        sha256 = Column(Text,
-                        comment="SHA256 hash for the asset.")
         scraping_metadata = Column(JSON,
                                    comment="Metadata for scraping.")
         info = Column(JSON,
@@ -145,8 +141,6 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
                            comment="Extension of the file.")
         url = Column(String,
                      comment="URL for the file.")
-        source = Column(String,
-                        comment="Main metadata source for the file.")
         sha256 = Column(Text,
                         comment="SHA256 hash for the file.")
         created = Column(DateTime, server_default=func.now(),
