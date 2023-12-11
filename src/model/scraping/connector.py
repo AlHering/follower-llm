@@ -23,38 +23,40 @@ class Connector(ABC):
         pass
 
     @abstractmethod
-    def check_connection(self) -> bool:
+    def check_connection(self, source_metadata: dict = None) -> bool:
         """
         Method for checking connection.
+        :param source_metadata: Scraping metadata for source.
         :return: True, if connection could be established, else False.
         """
         pass
 
     @abstractmethod
-    def get_channel_info(self, channel_id: Any) -> dict:
+    def get_channel_info(self, channel_url: str, channel_metadata: dict = None) -> dict:
         """
         Method for acquiring channel info.
-        :param channel_id: Channel ID.
+        :param channel_url: Channel URL.
+        :param channel_metadata: Scraping metadata for channel.
         :return: Channel info.
         """
         pass
 
     @abstractmethod
-    def get_asset_info(self, channel_id: Any, asset_id: Any) -> dict:
+    def get_asset_info(self, asset_url: str, asset_metadata: dict = None) -> dict:
         """
         Method for acquiring asset info.
-        :param channel_id: Channel ID.
-        :param asset_id: Asset ID.
+        :param asset_url: Asset URL.
+        :param asset_metadata: Scraping metadata for asset.
         :return: Asset info.
         """
         pass
 
     @abstractmethod
-    def download_asset(self, channel_id: Any, asset_id: Any) -> Tuple[dict, bytes]:
+    def download_asset(self, asset_url: str, asset_metadata: dict = None) -> Tuple[dict, bytes]:
         """
         Method for downloading asset.
-        :param channel_id: Channel ID.
-        :param asset_id: Asset ID.
+        :param asset_url: Asset URL.
+        :param asset_metadata: Scraping metadata for asset.
         :return: Asset header and content.
         """
         pass
