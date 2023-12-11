@@ -49,6 +49,8 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
                       comment="Display name for the source.")
         scraping_metadata = Column(JSON,
                                    comment="Metadata for scraping.")
+        info = Column(JSON,
+                      comment="Metadata of the source.")
         created = Column(DateTime, server_default=func.now(),
                          comment="Timestamp of creation.")
         updated = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
@@ -75,6 +77,8 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
                       comment="Display name for the channel.")
         scraping_metadata = Column(JSON,
                                    comment="Metadata for scraping.")
+        info = Column(JSON,
+                      comment="Metadata of the channel.")
         created = Column(DateTime, server_default=func.now(),
                          comment="Timestamp of creation.")
         updated = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
@@ -105,8 +109,10 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
                         comment="Main metadata source for the asset.")
         sha256 = Column(Text,
                         comment="SHA256 hash for the asset.")
-        meta_data = Column(JSON,
-                           comment="Metadata of the asset.")
+        scraping_metadata = Column(JSON,
+                                   comment="Metadata for scraping.")
+        info = Column(JSON,
+                      comment="Metadata of the asset.")
         created = Column(DateTime, server_default=func.now(),
                          comment="Timestamp of creation.")
         updated = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
