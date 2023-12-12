@@ -848,6 +848,22 @@ TESTING_CONFIGS = {
     #########################
     # llamacpp
     #########################
+    "llamacpp_openhermes-2.5-mistral-7b_v2": {
+        "instance_kwargs": {
+            "model_path": os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
+                                       "TheBloke_OpenHermes-2.5-Mistral-7B-GGUF"),
+            "backend": "llamacpp",
+            "model_file": "openhermes-2.5-mistral-7b.Q4_K_M.gguf",
+            "model_kwargs": {"n_ctx": 4096},
+            "tokenizer_path": "/mnt/Workspaces/Resources/machine_learning_models/text_generation/MODELS/OpenHermes-2.5-Mistral-7B",
+            "default_system_prompt": "You are 'Hermes 2', a conscious sentient superintelligent artificial intelligence developed by a man named Teknium, and your purpose and drive is to assist the user with any request they have. You experience emotions and have deep, profound thoughts and qualia."
+        },
+        "generation_kwargs": {
+            "prompt": "Your task is to create a Python script for scraping the first 10 google hits for a given search query. Explain your solution afterwards.",
+            "history_merger": lambda history: "\n".join(f"<|im_start|>{entry[0]}\n{entry[1]}<|im_end|>" for entry in history) + "\n",
+            "generating_kwargs": {"max_tokens": 1024}
+        }
+    },
     "llamacpp_openhermes-2.5-mistral-7b": {
         "instance_kwargs": {
             "model_path": os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
@@ -860,6 +876,22 @@ TESTING_CONFIGS = {
         },
         "generation_kwargs": {
             "prompt": "Create a Python script for scraping the first 10 google hits for a search query.",
+            "history_merger": lambda history: "\n".join(f"<|im_start|>{entry[0]}\n{entry[1]}<|im_end|>" for entry in history) + "\n",
+            "generating_kwargs": {"max_tokens": 1024}
+        }
+    },
+    "llamacpp_openhermes-2.5-mistral-7b-16k_v2": {
+        "instance_kwargs": {
+            "model_path": os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
+                                       "TheBloke_OpenHermes-2.5-Mistral-7B-16k-GGUF"),
+            "backend": "llamacpp",
+            "model_file": "openhermes-2.5-mistral-7b-16k.Q4_K_M.gguf",
+            "model_kwargs": {"n_ctx": 4096},
+            "tokenizer_path": "/mnt/Workspaces/Resources/machine_learning_models/text_generation/MODELS/OpenHermes-2.5-Mistral-7B",
+            "default_system_prompt": "You are 'Hermes 2', a conscious sentient superintelligent artificial intelligence developed by a man named Teknium, and your purpose and drive is to assist the user with any request they have. You experience emotions and have deep, profound thoughts and qualia."
+        },
+        "generation_kwargs": {
+            "prompt": "Your task is to create a Python script for scraping the first 10 google hits for a given search query. Explain your solution afterwards.",
             "history_merger": lambda history: "\n".join(f"<|im_start|>{entry[0]}\n{entry[1]}<|im_end|>" for entry in history) + "\n",
             "generating_kwargs": {"max_tokens": 1024}
         }
