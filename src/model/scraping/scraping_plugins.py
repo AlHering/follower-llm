@@ -29,7 +29,7 @@ class ScrapingPlugin(GenericPlugin):
             self.info["connector"] = os.path.normpath(
                 os.path.join(path, self.info["blueprints"]))
         self.connector: Connector = environment_utility.get_module(
-            self.info["connector"])
+            self.info["connector"], security_hash)
         for func in ["get_source_name", "check_connection", "get_channel_info", "get_asset_info", "download_asset"]:
             if not hasattr(self.connector, func):
                 raise PluginImportException(
