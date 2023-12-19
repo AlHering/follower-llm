@@ -68,6 +68,15 @@ Dataclasses
 """
 
 
+class Config(BaseModel):
+    """
+    Dataclass for config objects.
+    """
+    type: str
+    config: dict
+    owner_id: int
+
+
 """
 BACKEND ENDPOINTS
 """
@@ -82,11 +91,13 @@ class Endpoints(str, Enum):
     GET_LLMS = f"{BASE}/llms/"
     GET_KBS = f"{BASE}/kbs/"
 
-    CREATE_KB = f"{BASE}/kbs/create"
-    DELETE_KB = f"{BASE}/kbs/delete/{{kb_id}}"
+    GET_CONFIGS = f"{BASE}/configs"
+    CREATE_CONFIG = f"{BASE}/config/create"
+    UPDATE_CONFIG = f"{BASE}/config/update/{{kb_id}}"
+    DELETE_CONFIG = f"{BASE}/config/delete/{{kb_id}}"
 
     UPLOAD_DOCUMENT = f"{BASE}/kbs/upload/{{kb_id}}"
-    DELETE_DOCUMENT = f"{BASE}/kbs/delete_doc/{{doc_id}}"
+    DELETE_DOCUMENT = f"{BASE}/kbs/delete/{{doc_id}}"
 
     POST_QUERY = f"{BASE}/query"
 
@@ -124,12 +135,23 @@ async def get_kbs() -> dict:
     return {"kbs": CONTROLLER.get_objects_by_type("knowledgebase")}
 
 
-@BACKEND.post(Endpoints.CREATE_KB)
+@BACKEND.get(Endpoints.GET_CONFIGS)
 @interface_function()
-async def post_kb(uuid: str) -> str:
+async def get_configs() -> dict:
     """
-    Method for creating knowledgebase.
-    :param uuid: Knowledgebase uuid.
+    Endpoint for getting configs.
+    :return: Response.
+    """
+    global CONTROLLER
+    return {"configs": CONTROLLER.get_objects_by_type("config")}
+
+
+@BACKEND.post(Endpoints.CREATE_CONFIG)
+@interface_function()
+async def create_config(config: Config) -> dict:
+    """
+    Method for creating a config.
+    :param config: Config data.
     :return: Response.
     """
     global CONTROLLER
@@ -138,12 +160,27 @@ async def post_kb(uuid: str) -> str:
     return {"kb_id": kb_id}
 
 
-@BACKEND.delete(Endpoints.DELETE_KB)
+@BACKEND.patch(Endpoints.UPDATE_CONFIG)
 @interface_function()
-async def delete_kb(kb_id: int) -> dict:
+async def update_config(config_id: int, update: dict) -> dict:
     """
-    Endpoint for deleting KBs.
-    :param kb_id: int: Knowledgebase ID.
+    Endpoint for updating a config.
+    :param config_id: int: Config ID.
+    :param update: Update data.
+    :return: Response.
+    """
+    global CONTROLLER
+    CONTROLLER.delete_object("knowledgebase", kb_id)
+    CONTROLLER.wipe_knowledgebase(str(kb_id))
+    return {"kb_id": kb_id}
+
+
+@BACKEND.delete(Endpoints.DELETE_CONFIG)
+@interface_function()
+async def delete_config(config_id: int) -> dict:
+    """
+    Endpoint for deleting a config.
+    :param config_id: int: Config ID.
     :return: Response.
     """
     global CONTROLLER
