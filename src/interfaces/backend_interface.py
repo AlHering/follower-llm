@@ -13,7 +13,7 @@ from fastapi import FastAPI, File, UploadFile
 from pydantic import BaseModel
 from functools import wraps
 from src.configuration import configuration as cfg
-from src.control.follower_llm_controller import FollowerLLMController
+from src.control.follower_llm_controller import FollowerLLMController, FilterMask
 
 """
 Backend control
@@ -121,7 +121,7 @@ async def get_llms() -> dict:
     :return: Response.
     """
     global CONTROLLER
-    return {"llms": CONTROLLER.get_objects_by_type("modelinstance")}
+    return {"llms": CONTROLLER.get_objects_by_filtermasks("config", [FilterMask([["type", "==", "llm"]])])}
 
 
 @BACKEND.get(Endpoints.GET_KBS)
@@ -132,7 +132,7 @@ async def get_kbs() -> dict:
     :return: Response.
     """
     global CONTROLLER
-    return {"kbs": CONTROLLER.get_objects_by_type("knowledgebase")}
+    return {"kbs": CONTROLLER.get_objects_by_filtermasks("config", [FilterMask([["type", "==", "kb"]])])}
 
 
 @BACKEND.get(Endpoints.GET_CONFIGS)
@@ -155,9 +155,8 @@ async def create_config(config: Config) -> dict:
     :return: Response.
     """
     global CONTROLLER
-    kb_id = CONTROLLER.post_object("knowledgebase")
-    CONTROLLER.register_knowledgebase(kb_id=kb_id)
-    return {"kb_id": kb_id}
+    config_id = CONTROLLER.post_object("config", **config.json())
+    return {"config_id": config_id}
 
 
 @BACKEND.patch(Endpoints.UPDATE_CONFIG)
@@ -170,9 +169,8 @@ async def update_config(config_id: int, update: dict) -> dict:
     :return: Response.
     """
     global CONTROLLER
-    CONTROLLER.delete_object("knowledgebase", kb_id)
-    CONTROLLER.wipe_knowledgebase(str(kb_id))
-    return {"kb_id": kb_id}
+    config_id = CONTROLLER.patch_object("config", config_id, **update)
+    return {"config_id": config_id}
 
 
 @BACKEND.delete(Endpoints.DELETE_CONFIG)
@@ -184,9 +182,8 @@ async def delete_config(config_id: int) -> dict:
     :return: Response.
     """
     global CONTROLLER
-    CONTROLLER.delete_object("knowledgebase", kb_id)
-    CONTROLLER.wipe_knowledgebase(str(kb_id))
-    return {"kb_id": kb_id}
+    CONTROLLER.delete_object("config", config_id)
+    return {"config_id": config_id}
 
 
 @BACKEND.post(Endpoints.UPLOAD_DOCUMENT)
