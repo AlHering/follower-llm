@@ -53,7 +53,7 @@ def interface_function() -> Optional[Any]:
                 response = {
                     "status": "failed",
                     "exception": ex,
-                    "trace": traceback.format_exc
+                    "trace": traceback.format_exc()
                 }
             responded = dt.now()
             CONTROLLER.post_object(
