@@ -7,6 +7,7 @@
 """
 import uvicorn
 from enum import Enum
+import traceback
 from typing import Optional, Any
 from datetime import datetime as dt
 from fastapi import FastAPI, File, UploadFile
@@ -45,7 +46,15 @@ def interface_function() -> Optional[Any]:
             :param kwargs: Keyword arguments.
             """
             requested = dt.now()
-            response = await func(*args, **kwargs)
+            try:
+                response = await func(*args, **kwargs)
+                response["status"] = "successful"
+            except Exception as ex:
+                response = {
+                    "status": "failed",
+                    "exception": ex,
+                    "trace": traceback.format_exc
+                }
             responded = dt.now()
             CONTROLLER.post_object(
                 "log",
