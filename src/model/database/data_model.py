@@ -43,7 +43,7 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
 
         id = Column(Integer, primary_key=True, unique=True, nullable=False, autoincrement=True,
                     comment="ID of the source.")
-        url = Column(String,
+        url = Column(String, unique=True,
                      comment="URL for the source.")
         name = Column(String,
                       comment="Display name for the source.")
@@ -71,7 +71,7 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
 
         id = Column(Integer, primary_key=True, unique=True, nullable=False, autoincrement=True,
                     comment="ID of the channel.")
-        url = Column(String,
+        url = Column(String, unique=True,
                      comment="URL for the channel.")
         name = Column(String,
                       comment="Display name for the channel.")
@@ -103,7 +103,7 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
 
         id = Column(Integer, primary_key=True, unique=True, nullable=False, autoincrement=True,
                     comment="ID of the asset.")
-        url = Column(String,
+        url = Column(String, unique=True,
                      comment="URL for the asset.")
         scraping_metadata = Column(JSON,
                                    comment="Metadata for scraping.")
