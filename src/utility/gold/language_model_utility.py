@@ -9,7 +9,7 @@
 import os
 import traceback
 from pydantic import BaseModel
-from typing import List, Tuple, Any, Callable, Optional, Type
+from typing import List, Tuple, Any, Callable, Optional, Type, Union
 from uuid import uuid4
 from datetime import datetime as dt
 from src.configuration import configuration as cfg
@@ -839,6 +839,24 @@ class Agent(object):
         Method for printing an report.
         """
         pass
+
+
+"""
+Interfacing
+"""
+
+
+def spawn_language_model_instance(*args: Optional[Any], **kwargs: Optional[Any]) -> Union[LanguageModelInstance, dict]:
+    """
+    Function for spawning language model instance based on configuration arguments.
+    :param args: Arbitrary initiation arguments.
+    :param kwargs: Arbitrary initiation keyword arguments.
+    :return: Language model instance if configuration was successful else an error report.
+    """
+    try:
+        return LanguageModelInstance(*args, **kwargs)
+    except Exception as ex:
+        return {"exception": ex, "trace": traceback.format_exc()}
 
 
 """
