@@ -536,7 +536,7 @@ class LanguageModelInstance(object):
                  tokenizer_kwargs: dict = None,
                  config_path: str = None,
                  config_kwargs: dict = None,
-                 default_system_prompt: str = "You are a friendly and helpful assistant answering questions based on the context provided.",
+                 default_system_prompt: str = None,
                  use_history: bool = True,
                  history: List[Tuple[str, str, dict]] = None,
                  encoding_kwargs: dict = None,
@@ -576,7 +576,7 @@ class LanguageModelInstance(object):
             different initation methods.
         """
         self.backend = backend
-        self.system_prompt = default_system_prompt
+        self.system_prompt = "You are a friendly and helpful assistant answering questions based on the context provided." if default_system_prompt is None else default_system_prompt
 
         self.use_history = use_history
         self.history = [("system", self.system_prompt, {
