@@ -128,55 +128,69 @@ class FollowerLLMController(BasicSQLAlchemyInterface):
     LLM handling methods
     """
 
-    def load_instance(self, config_id: Union[str, int]) -> Optional[str]:
+    def load_instance(self, lm_instance_id: Union[str, int]) -> Optional[str]:
         """
         Method for loading a configured language model instance.
-        :param config_id: Config ID.
+        :param lm_instance_id: Model instance ID.
         :return: Config ID if process as successful.
         """
-        config_id = str(config_id)
-        if config_id in self._cache:
-            if not self.llm_pool.is_running(config_id):
-                self.llm_pool.start(config_id)
-                self._cache[config_id]["restarted"] += 1
+        lm_instance_id = str(lm_instance_id)
+        if lm_instance_id in self._cache:
+            if not self.llm_pool.is_running(lm_instance_id):
+                self.llm_pool.start(lm_instance_id)
+                self._cache[lm_instance_id]["restarted"] += 1
         else:
-            self._cache[config_id] = {
+            self._cache[lm_instance_id] = {
                 "started": None,
                 "restarted": 0,
                 "accessed": 0,
                 "inactive": 0
             }
-            config = self.get_object("config", int(config_id))
+            obj = self.get_object("lminstance", int(lm_instance_id))
 
-            self.llm_pool.prepare_llm(config.config, config_id)
-            self.llm_pool.start(config_id)
-            self._cache[config_id]["started"] = dt.now()
-        return config_id
+            self.llm_pool.prepare_llm({
+                "backend": obj.backend,
+                "model_path": obj.model_path,
+                "model_file": obj.model_file,
+                "model_kwargs": obj.model_parameters,
+                "tokenizer_path": obj.tokenizer_path,
+                "tokenizer_kwargs": obj.tokenizer_parameters,
+                "config_path": obj.config_path,
+                "config_kwargs": obj.config_parameters,
+                "default_system_prompt": obj.default_system_prompt,
+                "use_history": obj.use_history,
+                "encoding_kwargs": obj.encoding_parameters,
+                "generating_kwargs": obj.generating_parameters,
+                "decoding_kwargs": obj.decoding_parameters
+            }, lm_instance_id)
+            self.llm_pool.start(lm_instance_id)
+            self._cache[lm_instance_id]["started"] = dt.now()
+        return lm_instance_id
 
-    def unload_instance(self, config_id: Union[str, int]) -> Optional[str]:
+    def unload_instance(self, lm_instance_id: Union[str, int]) -> Optional[str]:
         """
         Method for unloading a configured language model instance.
-        :param config_id: Config ID.
+        :param lm_instance_id: Config ID.
         :return: Config ID if process as successful.
         """
-        config_id = str(config_id)
-        if config_id in self._cache:
-            if self.llm_pool.is_running(config_id):
-                self.llm_pool.stop(config_id)
-            return config_id
+        lm_instance_id = str(lm_instance_id)
+        if lm_instance_id in self._cache:
+            if self.llm_pool.is_running(lm_instance_id):
+                self.llm_pool.stop(lm_instance_id)
+            return lm_instance_id
         else:
             return None
 
-    def forward_generate(self, config_id: Union[str, int], prompt: str) -> Optional[str]:
+    def forward_generate(self, lm_instance_id: Union[str, int], prompt: str) -> Optional[str]:
         """
         Method for forwarding a generate request to an instance.
-        :param config_id: Config ID.
+        :param lm_instance_id: Config ID.
         :param prompt: Prompt.
         :return: Config ID.
         """
-        config_id = str(config_id)
-        self.load_instance(config_id)
-        return self.llm_pool.generate(config_id, prompt)
+        lm_instance_id = str(lm_instance_id)
+        self.load_instance(lm_instance_id)
+        return self.llm_pool.generate(lm_instance_id, prompt)
 
     """
     Knowledgebase handling methods
