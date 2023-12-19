@@ -10,7 +10,7 @@ from time import sleep
 from datetime import datetime as dt
 from typing import Optional, Any, List, Dict, Union
 from src.configuration import configuration as cfg
-from src.utility.gold.basic_sqlalchemy_interface import BasicSQLAlchemyInterface
+from src.utility.gold.basic_sqlalchemy_interface import BasicSQLAlchemyInterface, FilterMask as FilterMask
 from src.utility.bronze import sqlalchemy_utility
 from src.utility.bronze.hashing_utility import hash_text_with_sha256
 from src.model.database.data_model import populate_data_instrastructure
