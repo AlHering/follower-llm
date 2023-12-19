@@ -184,6 +184,68 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
         granted = relationship(
             "Access", back_populates="granter")
 
+    class LMInstance(base):
+        """
+        Config class, representing a LM instance.
+                 model_path: str,
+                 model_file: str = None,
+                 model_kwargs: dict = None,
+                 tokenizer_path: str = None,
+                 tokenizer_kwargs: dict = None,
+                 config_path: str = None,
+                 config_kwargs: dict = None,
+                 default_system_prompt: str = "You are a friendly and helpful assistant answering questions based on the context provided.",
+                 use_history: bool = True,
+                 history: List[Tuple[str, str, dict]] = None,
+                 encoding_kwargs: dict = None,
+                 generating_kwargs: dict = None,
+                 decoding_kwargs: dict = None
+        """
+        __tablename__ = f"{schema}lminstance"
+        __table_args__ = {
+            "comment": "LM instance table.", "extend_existing": True}
+
+        id = Column(Integer, primary_key=True, unique=True, nullable=False, autoincrement=True,
+                    comment="ID of the model instance.")
+        backend = Column(String, nullable=False,
+                         comment="Backend of the model instance.")
+        model_path = Column(String, nullable=False,
+                            comment="Path of the model instance.")
+        model_file = Column(String,
+                            comment="File of the model instance.")
+        model_parameters = Column(JSON,
+                                  comment="Parameters for the model instantiation.")
+        tokenizer_path = Column(String,
+                                comment="Path of the tokenizer.")
+        tokenizer_parameters = Column(JSON,
+                                      comment="Parameters for the tokenizer instantiation.")
+        config_path = Column(String,
+                             comment="Path of the config.")
+        config_parameters = Column(JSON,
+                                   comment="Parameters for the config.")
+        default_system_prompt = Column(String,
+                                       comment="Default system prompt of the model instance.")
+        use_history = Column(Boolean, default=True,
+                             comment="Flag for declaring whether to use a history.")
+        encoding_parameters = Column(JSON,
+                                     comment="Parameters for prompt encoding.")
+        generating_parameters = Column(JSON,
+                                       comment="Parameters for the response generation.")
+        decoding_parameters = Column(JSON,
+                                     comment="Parameters for response decoding.")
+
+        created = Column(DateTime, server_default=func.now(),
+                         comment="Timestamp of creation.")
+        updated = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
+                         comment="Timestamp of last update.")
+        inactive = Column(Boolean, nullable=False, default=False,
+                          comment="Inactivity flag.")
+
+        owner_id = mapped_column(
+            Integer, ForeignKey(f"{schema}user.id"))
+        owner = relationship(
+            "User", back_populates="configs")
+
     class Config(base):
         """
         Config class, representing a config.
@@ -260,7 +322,7 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
         responded = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
                            comment="Timestamp of reponse transmission.")
 
-    for dataclass in [Source, Channel, Asset, File, User, Config, Access, Log]:
+    for dataclass in [Source, Channel, Asset, File, User, LMInstance, Config, Access, Log]:
         model[dataclass.__tablename__.replace(schema, "")] = dataclass
 
     base.metadata.create_all(bind=engine)
