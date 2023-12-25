@@ -607,6 +607,17 @@ class LanguageModelInstance(object):
     Generation methods
     """
 
+    def embed(self,
+              input: str,
+              embedding_parameters: dict = None) -> List[float]:
+        """
+        Method for embedding an input.
+        :param input: Input to embed.
+        :param embedding_paramters: Kwargs for embedding.
+            Defaults to None.
+        """
+        pass
+
     def generate(self,
                  prompt: str,
                  history_merger: Callable = lambda history: "\n".join(
