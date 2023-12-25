@@ -328,7 +328,7 @@ def load_langchain_llamacpp_model(model_path: str,
                                   embeddings_path: str = None,
                                   embeddings_parameters: dict = {},
                                   config_path: str = None,
-                                  config_parameters: dict = {}) -> None:
+                                  config_parameters: dict = {}) -> Tuple:
     """
     Function for loading langchain-llamacpp based model objects.
     :param model_path: Path to model files.
@@ -681,8 +681,7 @@ class LanguageModelInstance(object):
         if self.backend == "ctransformers":
             return self.model.embed(input, **embedding_parameters)
         elif self.backend == "langchain_llamacpp":
-            # TODO: Implement embeddings for langchain_llamacpp
-            pass
+            return self.embeddings.embed_query(input)
         elif self.backend == "transformers":
             input_ids = self.tokenizer.encode(input, **encoding_parameters)
             return self.model.model.embed_tokens(input_ids)
