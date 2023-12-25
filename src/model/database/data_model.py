@@ -204,6 +204,7 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
                          comment="Backend of the model instance.")
         model_path = Column(String, nullable=False,
                             comment="Path of the model instance.")
+
         model_file = Column(String,
                             comment="File of the model instance.")
         model_parameters = Column(JSON,
@@ -216,6 +217,7 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
                              comment="Path of the config.")
         config_parameters = Column(JSON,
                                    comment="Parameters for the config.")
+
         default_system_prompt = Column(String,
                                        comment="Default system prompt of the model instance.")
         use_history = Column(Boolean, default=True,
@@ -226,6 +228,9 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
                                        comment="Parameters for the response generation.")
         decoding_parameters = Column(JSON,
                                      comment="Parameters for response decoding.")
+
+        resource_requirements = Column(JSON,
+                                       comment="Resource profile for validating requirements.")
 
         created = Column(DateTime, server_default=func.now(),
                          comment="Timestamp of creation.")

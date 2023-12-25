@@ -85,17 +85,21 @@ class LanguageModelInstance(BaseModel):
     """
     backend: str
     model_path: str
+
     model_file: str
     model_parameters: dict
     tokenizer_path: str
     tokenizer_parameters: dict
     config_path: str
     config_parameters: dict
+
     default_system_prompt: str
     use_history: bool
     encoding_parameters: dict
     generating_parameters: dict
     decoding_parameters: dict
+
+    resource_requirements: dict
 
 
 class KnowledgebaseInstance(BaseModel):
