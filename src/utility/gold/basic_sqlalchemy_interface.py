@@ -162,8 +162,12 @@ class BasicSQLAlchemyInterface(object):
         :param object_attributes: Object attributes.
         :return: Object ID of added object, if adding was successful.
         """
-        # TODO: Implement PUT-method
-        pass
+        objs = self.get_objects_by_filtermasks(object_type,
+                                               [FilterMask([[key, "==", object_attributes[key]] for key in object_attributes])])
+        if not objs:
+            return self.post_object(object_type, **object_attributes)
+        else:
+            return self.patch_object(object_type, getattr(objs[0], self.primary_keys[object_type]), **object_attributes)
 
     def patch_object(self, object_type: str, object_id: Any, **object_attributes: Optional[Any]) -> Optional[Any]:
         """
