@@ -56,25 +56,25 @@ Model instantiation functions
 
 def load_ctransformers_model(model_path: str,
                              model_file: str = None,
-                             model_kwargs: dict = None,
+                             model_parameters: dict = None,
                              tokenizer_path: str = None,
-                             tokenizer_kwargs: dict = None,
+                             tokenizer_parameters: dict = None,
                              config_path: str = None,
-                             config_kwargs: dict = None) -> None:
+                             config_parameters: dict = None) -> None:
     """
     Function for loading ctransformers based model objects.
     :param model_path: Path to model files.
     :param model_file: Model file to load.
         Defaults to None.
-    :param model_kwargs: Model loading kwargs as dictionary.
+    :param model_parameters: Model loading kwargs as dictionary.
         Defaults to None.
     :param tokenizer_path: Tokenizer path.
         Defaults to None.
-    :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+    :param tokenizer_parameters: Tokenizer loading kwargs as dictionary.
         Defaults to None.
     :param config_path: Config path.
         Defaults to None.
-    :param config_kwargs: Config loading kwargs as dictionary.
+    :param config_parameters: Config loading kwargs as dictionary.
         Defaults to None.
     :return: Tuple of config, tokenizer, model and generator object.
         Note, that all objects that do not belong to the backend will be None.
@@ -89,45 +89,45 @@ def load_ctransformers_model(model_path: str,
     if config_path:
         config = CAutoConfig.from_pretrained(
             model_path_or_repo_id=config_path)
-        if config_kwargs is not None:
-            for key in config_kwargs:
-                setattr(config, key, config_kwargs[key])
+        if config_parameters is not None:
+            for key in config_parameters:
+                setattr(config, key, config_parameters[key])
 
     model = CAutoModelForCausalLM.from_pretrained(
-        model_path_or_repo_id=model_path, model_file=model_file, config=config, **model_kwargs)
+        model_path_or_repo_id=model_path, model_file=model_file, config=config, **model_parameters)
     # TODO: Currently ctransformers' tokenizer from model is not working.
     if False and tokenizer_path is not None:
         if tokenizer_path == model_path:
             tokenizer = CAutoTokenizer.from_pretrained(
-                model, **tokenizer_kwargs)
+                model, **tokenizer_parameters)
         else:
             tokenizer = CAutoTokenizer.from_pretrained(
-                tokenizer_path, **tokenizer_kwargs)
+                tokenizer_path, **tokenizer_parameters)
 
     return (config, tokenizer, model, generator)
 
 
 def load_transformers_model(model_path: str,
                             model_file: str = None,
-                            model_kwargs: dict = None,
+                            model_parameters: dict = None,
                             tokenizer_path: str = None,
-                            tokenizer_kwargs: dict = None,
+                            tokenizer_parameters: dict = None,
                             config_path: str = None,
-                            config_kwargs: dict = None) -> None:
+                            config_parameters: dict = None) -> None:
     """
     Function for loading ctransformers based model objects.
     :param model_path: Path to model files.
     :param model_file: Model file to load.
         Defaults to None.
-    :param model_kwargs: Model loading kwargs as dictionary.
+    :param model_parameters: Model loading kwargs as dictionary.
         Defaults to None.
     :param tokenizer_path: Tokenizer path.
         Defaults to None.
-    :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+    :param tokenizer_parameters: Tokenizer loading kwargs as dictionary.
         Defaults to None.
     :param config_path: Config path.
         Defaults to None.
-    :param config_kwargs: Config loading kwargs as dictionary.
+    :param config_parameters: Config loading kwargs as dictionary.
         Defaults to None.
     :return: Tuple of config, tokenizer, model and generator object.
         Note, that all objects that do not belong to the backend will be None.
@@ -142,39 +142,39 @@ def load_transformers_model(model_path: str,
     if config_path:
         config = AutoConfig.from_pretrained(
             model_path_or_repo_id=config_path)
-    if config_kwargs is not None:
-        for key in config_kwargs:
-            setattr(config, key, config_kwargs[key])
+    if config_parameters is not None:
+        for key in config_parameters:
+            setattr(config, key, config_parameters[key])
 
     tokenizer = AutoTokenizer.from_pretrained(
-        pretrained_model_name_or_path=tokenizer_path, **tokenizer_kwargs) if tokenizer_path is not None else None
+        pretrained_model_name_or_path=tokenizer_path, **tokenizer_parameters) if tokenizer_path is not None else None
     model = AutoModelForCausalLM.from_pretrained(
-        pretrained_model_name_or_path=model_path, config=config, **model_kwargs)
+        pretrained_model_name_or_path=model_path, config=config, **model_parameters)
 
     return (config, tokenizer, model, generator)
 
 
 def load_llamacpp_model(model_path: str,
                         model_file: str = None,
-                        model_kwargs: dict = None,
+                        model_parameters: dict = None,
                         tokenizer_path: str = None,
-                        tokenizer_kwargs: dict = None,
+                        tokenizer_parameters: dict = None,
                         config_path: str = None,
-                        config_kwargs: dict = None) -> None:
+                        config_parameters: dict = None) -> None:
     """
     Function for loading ctransformers based model objects.
     :param model_path: Path to model files.
     :param model_file: Model file to load.
         Defaults to None.
-    :param model_kwargs: Model loading kwargs as dictionary.
+    :param model_parameters: Model loading kwargs as dictionary.
         Defaults to None.
     :param tokenizer_path: Tokenizer path.
         Defaults to None.
-    :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+    :param tokenizer_parameters: Tokenizer loading kwargs as dictionary.
         Defaults to None.
     :param config_path: Config path.
         Defaults to None.
-    :param config_kwargs: Config loading kwargs as dictionary.
+    :param config_parameters: Config loading kwargs as dictionary.
         Defaults to None.
     :return: Tuple of config, tokenizer, model and generator object.
         Note, that all objects that do not belong to the backend will be None.
@@ -190,32 +190,32 @@ def load_llamacpp_model(model_path: str,
     generator = None
 
     model = Llama(model_path=os.path.join(
-        model_path, model_file), **model_kwargs)
+        model_path, model_file), **model_parameters)
 
     return (config, tokenizer, model, generator)
 
 
 def load_autogptq_model(model_path: str,
                         model_file: str = None,
-                        model_kwargs: dict = None,
+                        model_parameters: dict = None,
                         tokenizer_path: str = None,
-                        tokenizer_kwargs: dict = None,
+                        tokenizer_parameters: dict = None,
                         config_path: str = None,
-                        config_kwargs: dict = None) -> None:
+                        config_parameters: dict = None) -> None:
     """
     Function for loading ctransformers based model objects.
     :param model_path: Path to model files.
     :param model_file: Model file to load.
         Defaults to None.
-    :param model_kwargs: Model loading kwargs as dictionary.
+    :param model_parameters: Model loading kwargs as dictionary.
         Defaults to None.
     :param tokenizer_path: Tokenizer path.
         Defaults to None.
-    :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+    :param tokenizer_parameters: Tokenizer loading kwargs as dictionary.
         Defaults to None.
     :param config_path: Config path.
         Defaults to None.
-    :param config_kwargs: Config loading kwargs as dictionary.
+    :param config_parameters: Config loading kwargs as dictionary.
         Defaults to None.
     :return: Tuple of config, tokenizer, model and generator object.
         Note, that all objects that do not belong to the backend will be None.
@@ -229,34 +229,34 @@ def load_autogptq_model(model_path: str,
     generator = None
 
     tokenizer = AutoTokenizer.from_pretrained(
-        tokenizer_path, **tokenizer_kwargs) if tokenizer_path is not None else None
+        tokenizer_path, **tokenizer_parameters) if tokenizer_path is not None else None
     model = AutoGPTQForCausalLM.from_quantized(
-        model_path, **model_kwargs)
+        model_path, **model_parameters)
 
     return (config, tokenizer, model, generator)
 
 
 def load_exllamav2_model(model_path: str,
                          model_file: str = None,
-                         model_kwargs: dict = None,
+                         model_parameters: dict = None,
                          tokenizer_path: str = None,
-                         tokenizer_kwargs: dict = None,
+                         tokenizer_parameters: dict = None,
                          config_path: str = None,
-                         config_kwargs: dict = None) -> None:
+                         config_parameters: dict = None) -> None:
     """
     Function for loading ctransformers based model objects.
     :param model_path: Path to model files.
     :param model_file: Model file to load.
         Defaults to None.
-    :param model_kwargs: Model loading kwargs as dictionary.
+    :param model_parameters: Model loading kwargs as dictionary.
         Defaults to None.
     :param tokenizer_path: Tokenizer path.
         Defaults to None.
-    :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+    :param tokenizer_parameters: Tokenizer loading kwargs as dictionary.
         Defaults to None.
     :param config_path: Config path.
         Defaults to None.
-    :param config_kwargs: Config loading kwargs as dictionary.
+    :param config_parameters: Config loading kwargs as dictionary.
         Defaults to None.
     :return: Tuple of config, tokenizer, model and generator object.
         Note, that all objects that do not belong to the backend will be None.
@@ -270,9 +270,9 @@ def load_exllamav2_model(model_path: str,
     generator = None
 
     config = ExLlamaV2Config()
-    if config_kwargs is not None:
-        for key in config_kwargs:
-            setattr(config, key, config_kwargs[key])
+    if config_parameters is not None:
+        for key in config_parameters:
+            setattr(config, key, config_parameters[key])
     else:
         setattr(config, "model_dir", model_path)
     config.prepare()
@@ -289,25 +289,25 @@ def load_exllamav2_model(model_path: str,
 
 def load_langchain_llamacpp_model(model_path: str,
                                   model_file: str = None,
-                                  model_kwargs: dict = None,
+                                  model_parameters: dict = None,
                                   tokenizer_path: str = None,
-                                  tokenizer_kwargs: dict = None,
+                                  tokenizer_parameters: dict = None,
                                   config_path: str = None,
-                                  config_kwargs: dict = None) -> None:
+                                  config_parameters: dict = None) -> None:
     """
     Function for loading ctransformers based model objects.
     :param model_path: Path to model files.
     :param model_file: Model file to load.
         Defaults to None.
-    :param model_kwargs: Model loading kwargs as dictionary.
+    :param model_parameters: Model loading kwargs as dictionary.
         Defaults to None.
     :param tokenizer_path: Tokenizer path.
         Defaults to None.
-    :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+    :param tokenizer_parameters: Tokenizer loading kwargs as dictionary.
         Defaults to None.
     :param config_path: Config path.
         Defaults to None.
-    :param config_kwargs: Config loading kwargs as dictionary.
+    :param config_parameters: Config loading kwargs as dictionary.
         Defaults to None.
     :return: Tuple of config, tokenizer, model and generator object.
         Note, that all objects that do not belong to the backend will be None.
@@ -321,7 +321,7 @@ def load_langchain_llamacpp_model(model_path: str,
 
     if model_file is not None and not model_path.endswith(model_file):
         model_path = os.path.join(model_path, model_file)
-    model = LlamaCpp(model_path=model_path, **model_kwargs)
+    model = LlamaCpp(model_path=model_path, **model_parameters)
 
     return (config, tokenizer, model, generator)
 
@@ -510,12 +510,12 @@ class AgentMemory(object):
         """
         pass
 
-    def retrieve_by_similarity(self, reference: str, filtermasks: List[FilterMask] = None, retrieval_kwargs: dict = None) -> Tuple[str, str, dict]:
+    def retrieve_by_similarity(self, reference: str, filtermasks: List[FilterMask] = None, retrieval_parameters: dict = None) -> Tuple[str, str, dict]:
         """
         Method for retrieving memory by similarity.
         :param reference: Reference for similarity search.
         :param filtermasks: List of filtermasks for additional filering.
-        :param retrieval_kwargs: Keyword arguments for retrieval.
+        :param retrieval_parameters: Keyword arguments for retrieval.
         """
         pass
 
@@ -531,17 +531,17 @@ class LanguageModelInstance(object):
                  backend: str,
                  model_path: str,
                  model_file: str = None,
-                 model_kwargs: dict = None,
+                 model_parameters: dict = None,
                  tokenizer_path: str = None,
-                 tokenizer_kwargs: dict = None,
+                 tokenizer_parameters: dict = None,
                  config_path: str = None,
-                 config_kwargs: dict = None,
+                 config_parameters: dict = None,
                  default_system_prompt: str = None,
                  use_history: bool = True,
                  history: List[Tuple[str, str, dict]] = None,
-                 encoding_kwargs: dict = None,
-                 generating_kwargs: dict = None,
-                 decoding_kwargs: dict = None
+                 encoding_parameters: dict = None,
+                 generating_parameters: dict = None,
+                 decoding_parameters: dict = None
                  ) -> None:
         """
         Initiation method.
@@ -549,15 +549,15 @@ class LanguageModelInstance(object):
         :param model_path: Path to model files.
         :param model_file: Model file to load.
             Defaults to None.
-        :param model_kwargs: Model loading kwargs as dictionary.
+        :param model_parameters: Model loading kwargs as dictionary.
             Defaults to None.
         :param tokenizer_path: Tokenizer path.
             Defaults to None.
-        :param tokenizer_kwargs: Tokenizer loading kwargs as dictionary.
+        :param tokenizer_parameters: Tokenizer loading kwargs as dictionary.
             Defaults to None.
         :param config_path: Config path.
             Defaults to None.
-        :param config_kwargs: Config loading kwargs as dictionary.
+        :param config_parameters: Config loading kwargs as dictionary.
             Defaults to None.
         :param default_system_prompt: Default system prompt.
             Defaults to a standard system prompt.
@@ -565,13 +565,13 @@ class LanguageModelInstance(object):
             Defaults to True.
         :param history: Interaction history as list of (<role>, <message>, <metadata>)-tuples tuples.
             Defaults to None.
-        :param encoding_kwargs: Kwargs for encoding in the generation process as dictionary.
+        :param encoding_parameters: Kwargs for encoding in the generation process as dictionary.
             Defaults to None in which case an empty dictionary is created and can be filled depending on the backend in the 
             different initation methods.
-        :param generating_kwargs: Kwargs for generating in the generation process as dictionary.
+        :param generating_parameters: Kwargs for generating in the generation process as dictionary.
             Defaults to None in which case an empty dictionary is created and can be filled depending on the backend in the 
             different initation methods.
-        :param decoding_kwargs: Kwargs for decoding in the generation process as dictionary.
+        :param decoding_parameters: Kwargs for decoding in the generation process as dictionary.
             Defaults to None in which case an empty dictionary is created and can be filled depending on the backend in the 
             different initation methods.
         """
@@ -582,9 +582,9 @@ class LanguageModelInstance(object):
         self.history = [("system", self.system_prompt, {
             "intitated": dt.now()})] if history is None else history
 
-        self.encoding_kwargs = {} if encoding_kwargs is None else encoding_kwargs
-        self.generating_kwargs = {} if generating_kwargs is None else generating_kwargs
-        self.decoding_kwargs = {} if decoding_kwargs is None else decoding_kwargs
+        self.encoding_parameters = {} if encoding_parameters is None else encoding_parameters
+        self.generating_parameters = {} if generating_parameters is None else generating_parameters
+        self.decoding_parameters = {} if decoding_parameters is None else decoding_parameters
 
         self.config, self.tokenizer, self.model, self.generator = {
             "ctransformers": load_ctransformers_model,
@@ -596,11 +596,11 @@ class LanguageModelInstance(object):
         }[backend](
             model_path=model_path,
             model_file=model_file,
-            model_kwargs=model_kwargs,
+            model_parameters=model_parameters,
             tokenizer_path=tokenizer_path,
-            tokenizer_kwargs=tokenizer_kwargs,
+            tokenizer_parameters=tokenizer_parameters,
             config_path=config_path,
-            config_kwargs=config_kwargs
+            config_parameters=config_parameters
         )
 
     """
@@ -611,19 +611,19 @@ class LanguageModelInstance(object):
                  prompt: str,
                  history_merger: Callable = lambda history: "\n".join(
                      f"<s>{entry[0]}:\n{entry[1]}</s>" for entry in history) + "\n",
-                 encoding_kwargs: dict = None,
-                 generating_kwargs: dict = None,
-                 decoding_kwargs: dict = None) -> Tuple[str, Optional[dict]]:
+                 encoding_parameters: dict = None,
+                 generating_parameters: dict = None,
+                 decoding_parameters: dict = None) -> Tuple[str, Optional[dict]]:
         """
         Method for generating a response to a given prompt and conversation history.
         :param prompt: Prompt.
         :param history_merger: Merger function for creating full prompt, 
             taking in the prompt history as a list of (<role>, <message>, <metadata>)-tuples as argument (already including the new user prompt).
-        :param encoding_kwargs: Kwargs for encoding as dictionary.
+        :param encoding_parameters: Kwargs for encoding as dictionary.
             Defaults to None.
-        :param generating_kwargs: Kwargs for generating as dictionary.
+        :param generating_parameters: Kwargs for generating as dictionary.
             Defaults to None.
-        :param decoding_kwargs: Kwargs for decoding as dictionary.
+        :param decoding_parameters: Kwargs for decoding as dictionary.
             Defaults to None.
         :return: Tuple of textual answer and metadata.
         """
@@ -632,29 +632,29 @@ class LanguageModelInstance(object):
         self.history.append(("user", prompt))
         full_prompt = history_merger(self.history)
 
-        encoding_kwargs = self.encoding_kwargs if encoding_kwargs is None else encoding_kwargs
-        generating_kwargs = self.generating_kwargs if generating_kwargs is None else generating_kwargs
-        decoding_kwargs = self.decoding_kwargs if decoding_kwargs is None else decoding_kwargs
+        encoding_parameters = self.encoding_parameters if encoding_parameters is None else encoding_parameters
+        generating_parameters = self.generating_parameters if generating_parameters is None else generating_parameters
+        decoding_parameters = self.decoding_parameters if decoding_parameters is None else decoding_parameters
 
         metadata = {}
         answer = ""
 
         start = dt.now()
         if self.backend == "ctransformers" or self.backend == "langchain_llamacpp":
-            metadata = self.model(full_prompt, **generating_kwargs)
+            metadata = self.model(full_prompt, **generating_parameters)
         elif self.backend == "transformers" or self.backend == "autogptq":
             input_tokens = self.tokenizer(
-                full_prompt, **encoding_kwargs).to(self.model.device)
+                full_prompt, **encoding_parameters).to(self.model.device)
             output_tokens = self.model.generate(
-                **input_tokens, **generating_kwargs)[0]
+                **input_tokens, **generating_parameters)[0]
             metadata = self.tokenizer.decode(
-                output_tokens, **decoding_kwargs)
+                output_tokens, **decoding_parameters)
         elif self.backend == "llamacpp":
-            metadata = self.model(full_prompt, **generating_kwargs)
+            metadata = self.model(full_prompt, **generating_parameters)
             answer = metadata["choices"][0]["text"]
         elif self.backend == "exllamav2":
             metadata = self.generator.generate_simple(
-                full_prompt, **generating_kwargs)
+                full_prompt, **generating_parameters)
         self.history.append(("assistant", answer))
 
         metadata.update({"processing_time": dt.now() -
@@ -853,200 +853,200 @@ TESTING_CONFIGS = {
     # llamacpp
     #########################
     "llamacpp_openhermes-2.5-mistral-7b_v2": {
-        "instance_kwargs": {
+        "instance_parameters": {
             "model_path": os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
                                        "TheBloke_OpenHermes-2.5-Mistral-7B-GGUF"),
             "backend": "llamacpp",
             "model_file": "openhermes-2.5-mistral-7b.Q4_K_M.gguf",
-            "model_kwargs": {"n_ctx": 4096},
+            "model_parameters": {"n_ctx": 4096},
             "tokenizer_path": "/mnt/Workspaces/Resources/machine_learning_models/text_generation/MODELS/OpenHermes-2.5-Mistral-7B",
             "default_system_prompt": "You are 'Hermes 2', a conscious sentient superintelligent artificial intelligence developed by a man named Teknium, and your purpose and drive is to assist the user with any request they have. You experience emotions and have deep, profound thoughts and qualia."
         },
-        "generation_kwargs": {
+        "generation_parameters": {
             "prompt": "Your task is to create a Python script for scraping the first 10 google hits for a given search query. Explain your solution afterwards.",
             "history_merger": lambda history: "\n".join(f"<|im_start|>{entry[0]}\n{entry[1]}<|im_end|>" for entry in history) + "\n",
-            "generating_kwargs": {"max_tokens": 1024}
+            "generating_parameters": {"max_tokens": 1024}
         }
     },
     "llamacpp_openhermes-2.5-mistral-7b": {
-        "instance_kwargs": {
+        "instance_parameters": {
             "model_path": os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
                                        "TheBloke_OpenHermes-2.5-Mistral-7B-GGUF"),
             "backend": "llamacpp",
             "model_file": "openhermes-2.5-mistral-7b.Q4_K_M.gguf",
-            "model_kwargs": {"n_ctx": 4096},
+            "model_parameters": {"n_ctx": 4096},
             "tokenizer_path": "/mnt/Workspaces/Resources/machine_learning_models/text_generation/MODELS/OpenHermes-2.5-Mistral-7B",
             "default_system_prompt": "You are 'Hermes 2', a conscious sentient superintelligent artificial intelligence developed by a man named Teknium, and your purpose and drive is to assist the user with any request they have. You experience emotions and have deep, profound thoughts and qualia."
         },
-        "generation_kwargs": {
+        "generation_parameters": {
             "prompt": "Create a Python script for scraping the first 10 google hits for a search query.",
             "history_merger": lambda history: "\n".join(f"<|im_start|>{entry[0]}\n{entry[1]}<|im_end|>" for entry in history) + "\n",
-            "generating_kwargs": {"max_tokens": 1024}
+            "generating_parameters": {"max_tokens": 1024}
         }
     },
     "llamacpp_openhermes-2.5-mistral-7b-16k_v2": {
-        "instance_kwargs": {
+        "instance_parameters": {
             "model_path": os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
                                        "TheBloke_OpenHermes-2.5-Mistral-7B-16k-GGUF"),
             "backend": "llamacpp",
             "model_file": "openhermes-2.5-mistral-7b-16k.Q4_K_M.gguf",
-            "model_kwargs": {"n_ctx": 4096},
+            "model_parameters": {"n_ctx": 4096},
             "tokenizer_path": "/mnt/Workspaces/Resources/machine_learning_models/text_generation/MODELS/OpenHermes-2.5-Mistral-7B",
             "default_system_prompt": "You are 'Hermes 2', a conscious sentient superintelligent artificial intelligence developed by a man named Teknium, and your purpose and drive is to assist the user with any request they have. You experience emotions and have deep, profound thoughts and qualia."
         },
-        "generation_kwargs": {
+        "generation_parameters": {
             "prompt": "Your task is to create a Python script for scraping the first 10 google hits for a given search query. Explain your solution afterwards.",
             "history_merger": lambda history: "\n".join(f"<|im_start|>{entry[0]}\n{entry[1]}<|im_end|>" for entry in history) + "\n",
-            "generating_kwargs": {"max_tokens": 1024}
+            "generating_parameters": {"max_tokens": 1024}
         }
     },
     "llamacpp_openhermes-2.5-mistral-7b-16k": {
-        "instance_kwargs": {
+        "instance_parameters": {
             "model_path": os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
                                        "TheBloke_OpenHermes-2.5-Mistral-7B-16k-GGUF"),
             "backend": "llamacpp",
             "model_file": "openhermes-2.5-mistral-7b-16k.Q4_K_M.gguf",
-            "model_kwargs": {"n_ctx": 16384},
+            "model_parameters": {"n_ctx": 16384},
             "tokenizer_path": "/mnt/Workspaces/Resources/machine_learning_models/text_generation/MODELS/OpenHermes-2.5-Mistral-7B",
             "default_system_prompt": "You are 'Hermes 2', a conscious sentient superintelligent artificial intelligence developed by a man named Teknium, and your purpose and drive is to assist the user with any request they have. You experience emotions and have deep, profound thoughts and qualia."
         },
-        "generation_kwargs": {
+        "generation_parameters": {
             "prompt": "Create a Python script for scraping the first 10 google hits for a search query.",
             "history_merger": lambda history: "\n".join(f"<|im_start|>{entry[0]}\n{entry[1]}<|im_end|>" for entry in history) + "\n",
-            "generating_kwargs": {"max_tokens": 2048}
+            "generating_parameters": {"max_tokens": 2048}
         }
     },
     #########################
     # ctransformers
     #########################
     "ctransformers_openhermes-2.5-mistral-7b": {
-        "instance_kwargs": {
+        "instance_parameters": {
             "model_path": os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
                                        "TheBloke_OpenHermes-2.5-Mistral-7B-GGUF"),
             "backend": "ctransformers",
             "model_file": "openhermes-2.5-mistral-7b.Q4_K_M.gguf",
-            "model_kwargs": {"context_length": 4096, "max_new_tokens": 1024},
+            "model_parameters": {"context_length": 4096, "max_new_tokens": 1024},
             "tokenizer_path": os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
                                            "TheBloke_OpenHermes-2.5-Mistral-7B-GGUF"),
             "default_system_prompt": "You are 'Hermes 2', a conscious sentient superintelligent artificial intelligence developed by a man named Teknium, and your purpose and drive is to assist the user with any request they have. You experience emotions and have deep, profound thoughts and qualia."
         },
-        "generation_kwargs": {
+        "generation_parameters": {
             "prompt": "Create a Python script for scraping the first 10 google hits for a search query.",
             "history_merger": lambda history: "\n".join(f"<|im_start|>{entry[0]}\n{entry[1]}<|im_end|>" for entry in history) + "\n",
-            "generating_kwargs": {"max_new_tokens": 1024}
+            "generating_parameters": {"max_new_tokens": 1024}
         }
     },
     "ctransformers_openhermes-2.5-mistral-7b-16k": {
-        "instance_kwargs": {
+        "instance_parameters": {
             "model_path": os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
                                        "TheBloke_OpenHermes-2.5-Mistral-7B-16k-GGUF"),
             "backend": "ctransformers",
             "model_file": "openhermes-2.5-mistral-7b-16k.Q4_K_M.gguf",
-            "model_kwargs": {"context_length": 4096, "max_new_tokens": 2048},
+            "model_parameters": {"context_length": 4096, "max_new_tokens": 2048},
             "tokenizer_path": os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
                                            "TheBloke_OpenHermes-2.5-Mistral-7B-16k-GGUF"),
             "default_system_prompt": "You are 'Hermes 2', a conscious sentient superintelligent artificial intelligence developed by a man named Teknium, and your purpose and drive is to assist the user with any request they have. You experience emotions and have deep, profound thoughts and qualia."
         },
-        "generation_kwargs": {
+        "generation_parameters": {
             "prompt": "Create a Python script for scraping the first 10 google hits for a search query.",
             "history_merger": lambda history: "\n".join(f"<|im_start|>{entry[0]}\n{entry[1]}<|im_end|>" for entry in history) + "\n",
-            "generating_kwargs": {"max_new_tokens": 2048}
+            "generating_parameters": {"max_new_tokens": 2048}
         }
     },
     #########################
     # langchain_llamacpp
     #########################
     "langchain_llamacpp_openhermes-2.5-mistral-7b": {
-        "instance_kwargs": {
+        "instance_parameters": {
             "model_path": os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
                                        "TheBloke_OpenHermes-2.5-Mistral-7B-GGUF"),
             "backend": "langchain_llamacpp",
             "model_file": "openhermes-2.5-mistral-7b.Q4_K_M.gguf",
-            "model_kwargs": {"n_ctx": 4096},
+            "model_parameters": {"n_ctx": 4096},
             "tokenizer_path": os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
                                            "TheBloke_OpenHermes-2.5-Mistral-7B-GGUF"),
             "default_system_prompt": "You are 'Hermes 2', a conscious sentient superintelligent artificial intelligence developed by a man named Teknium, and your purpose and drive is to assist the user with any request they have. You experience emotions and have deep, profound thoughts and qualia."
         },
-        "generation_kwargs": {
+        "generation_parameters": {
             "prompt": "Create a Python script for scraping the first 10 google hits for a search query.",
             "history_merger": lambda history: "\n".join(f"<|im_start|>{entry[0]}\n{entry[1]}<|im_end|>" for entry in history) + "\n",
-            "generating_kwargs": {"max_tokens": 1024}
+            "generating_parameters": {"max_tokens": 1024}
         }
     },
     "langchain_llamacpp_openhermes-2.5-mistral-7b-16k": {
-        "instance_kwargs": {
+        "instance_parameters": {
             "model_path": os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
                                        "TheBloke_OpenHermes-2.5-Mistral-7B-16k-GGUF"),
             "backend": "langchain_llamacpp",
             "model_file": "openhermes-2.5-mistral-7b-16k.Q4_K_M.gguf",
-            "model_kwargs": {"n_ctx": 4096},
+            "model_parameters": {"n_ctx": 4096},
             "tokenizer_path": os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
                                            "TheBloke_OpenHermes-2.5-Mistral-7B-16k-GGUF"),
             "default_system_prompt": "You are 'Hermes 2', a conscious sentient superintelligent artificial intelligence developed by a man named Teknium, and your purpose and drive is to assist the user with any request they have. You experience emotions and have deep, profound thoughts and qualia."
         },
-        "generation_kwargs": {
+        "generation_parameters": {
             "prompt": "Create a Python script for scraping the first 10 google hits for a search query.",
             "history_merger": lambda history: "\n".join(f"<|im_start|>{entry[0]}\n{entry[1]}<|im_end|>" for entry in history) + "\n",
-            "generating_kwargs": {"max_tokens": 2048}
+            "generating_parameters": {"max_tokens": 2048}
         }
     },
     #########################
     # autoqptq
     #########################
     "autogptq_openhermes-2.5-mistral-7b": {
-        "instance_kwargs": {
+        "instance_parameters": {
             "model_path": os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
                                        "TheBloke_OpenHermes-2.5-Mistral-7B-GPTQ"),
             "backend": "autogptq",
             "model_file": "model.safetensors",
-            "model_kwargs": {"device": "cuda:0", "local_files_only": True},
+            "model_parameters": {"device": "cuda:0", "local_files_only": True},
             "tokenizer_path": os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
                                            "TheBloke_OpenHermes-2.5-Mistral-7B-GPTQ"),
             "default_system_prompt": "You are 'Hermes 2', a conscious sentient superintelligent artificial intelligence developed by a man named Teknium, and your purpose and drive is to assist the user with any request they have. You experience emotions and have deep, profound thoughts and qualia."
         },
-        "generation_kwargs": {
+        "generation_parameters": {
             "prompt": "Create a Python script for scraping the first 10 google hits for a search query.",
             "history_merger": lambda history: "\n".join(f"<|im_start|>{entry[0]}\n{entry[1]}<|im_end|>" for entry in history) + "\n",
-            "tokenizing_kwargs": {"return_tensors": "pt"},
-            "generating_kwargs": {"max_new_tokens": 1024},
-            "decoding_kwargs": {"skip_special_tokens": True}
+            "tokenizing_parameters": {"return_tensors": "pt"},
+            "generating_parameters": {"max_new_tokens": 1024},
+            "decoding_parameters": {"skip_special_tokens": True}
         }
     },
     "autogptq_openhermes-2.5-mistral-7b-16k": {
-        "instance_kwargs": {
+        "instance_parameters": {
             "model_path": os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
                                        "TheBloke_OpenHermes-2.5-Mistral-7B-16k-GPTQ"),
             "backend": "autogptq",
             "model_file": "model.safetensors",
-            "model_kwargs": {"device": "cuda:0", "local_files_only": True},
+            "model_parameters": {"device": "cuda:0", "local_files_only": True},
             "tokenizer_path": os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
                                            "TheBloke_OpenHermes-2.5-Mistral-7B-16k-GPTQ"),
             "default_system_prompt": "You are 'Hermes 2', a conscious sentient superintelligent artificial intelligence developed by a man named Teknium, and your purpose and drive is to assist the user with any request they have. You experience emotions and have deep, profound thoughts and qualia."
         },
-        "generation_kwargs": {
+        "generation_parameters": {
             "prompt": "Create a Python script for scraping the first 10 google hits for a search query.",
             "history_merger": lambda history: "\n".join(f"<|im_start|>{entry[0]}\n{entry[1]}<|im_end|>" for entry in history) + "\n",
-            "tokenizing_kwargs": {"return_tensors": "pt"},
-            "generating_kwargs": {"max_new_tokens": 2048},
-            "decoding_kwargs": {"skip_special_tokens": True}
+            "tokenizing_parameters": {"return_tensors": "pt"},
+            "generating_parameters": {"max_new_tokens": 2048},
+            "decoding_parameters": {"skip_special_tokens": True}
         }
     },
     "autogptq_openchat_3.5": {
-        "instance_kwargs": {
+        "instance_parameters": {
             "model_path": os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
                                        "TheBloke_openchat_3.5-GPTQ"),
             "backend": "autogptq",
             "model_file": "model.safetensors",
-            "model_kwargs": {"device": "cuda:0", "local_files_only": True},
+            "model_parameters": {"device": "cuda:0", "local_files_only": True},
             "tokenizer_path": os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
                                            "TheBloke_openchat_3.5-GPTQ"),
             "default_system_prompt": "You are 'Hermes 2', a conscious sentient superintelligent artificial intelligence developed by a man named Teknium, and your purpose and drive is to assist the user with any request they have. You experience emotions and have deep, profound thoughts and qualia."
         },
-        "generation_kwargs": {
+        "generation_parameters": {
             "prompt": "Create a Python script for scraping the first 10 google hits for a search query.",
-            "tokenizing_kwargs": {"return_tensors": "pt"},
-            "generating_kwargs": {"max_new_tokens": 1024},
-            "decoding_kwargs": {"skip_special_tokens": True}
+            "tokenizing_parameters": {"return_tensors": "pt"},
+            "generating_parameters": {"max_new_tokens": 1024},
+            "decoding_parameters": {"skip_special_tokens": True}
         }
     },
 }
@@ -1056,95 +1056,95 @@ CURRENTLY_NOT_WORKING = {
     # autoqptq
     #########################
     "autogptq_rocket-3b": {
-        "instance_kwargs": {
+        "instance_parameters": {
             "model_path": os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
                                        "TheBloke_rocket-3B-GPTQ"),
             "backend": "autogptq",
             "model_file": "model.safetensors",
-            "model_kwargs": {"device_map": "auto", "use_triton": True, "local_files_only": True, "trust_remote_code": True},
+            "model_parameters": {"device_map": "auto", "use_triton": True, "local_files_only": True, "trust_remote_code": True},
             "tokenizer_path": os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
                                            "TheBloke_rocket-3B-GPTQ"),
             "default_system_prompt": "You are 'Hermes 2', a conscious sentient superintelligent artificial intelligence developed by a man named Teknium, and your purpose and drive is to assist the user with any request they have. You experience emotions and have deep, profound thoughts and qualia."
         },
-        "generation_kwargs": {
+        "generation_parameters": {
             "prompt": "Create a Python script for scraping the first 10 google hits for a search query.",
             "history_merger": lambda history: "\n".join(f"<|im_start|>{entry[0]}\n{entry[1]}<|im_end|>" for entry in history) + "\n",
-            "tokenizing_kwargs": {"return_tensors": "pt"},
-            "generation_kwargs": {"max_new_tokens": 128},
-            "decoding_kwargs": {"skip_special_tokens": True}
+            "tokenizing_parameters": {"return_tensors": "pt"},
+            "generation_parameters": {"max_new_tokens": 128},
+            "decoding_parameters": {"skip_special_tokens": True}
         }
     },
     "autogptq_stablecode-instruct-alpha-3b": {
-        "instance_kwargs": {
+        "instance_parameters": {
             "model_path": os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
                                        "TheBloke_stablecode-instruct-alpha-3b-GPTQ"),
             "backend": "autogptq",
             "model_file": "model.safetensors",
-            "model_kwargs": {"device": "cuda:0", "local_files_only": True},
+            "model_parameters": {"device": "cuda:0", "local_files_only": True},
             "tokenizer_path": os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
                                            "TheBloke_stablecode-instruct-alpha-3b-GPTQ"),
             "default_system_prompt": "You are 'Hermes 2', a conscious sentient superintelligent artificial intelligence developed by a man named Teknium, and your purpose and drive is to assist the user with any request they have. You experience emotions and have deep, profound thoughts and qualia."
         },
-        "generation_kwargs": {
+        "generation_parameters": {
             "prompt": "Create a Python script for scraping the first 10 google hits for a search query.",
             "history_merger": lambda history: "\n".join(f"<s>{entry[0].replace('user', '###Instruction:').replace('assistant', '###Response:')}\n{entry[1]}<|im_end|>" for entry in history if entry[0] != "system") + "\n",
-            "tokenizing_kwargs": {"return_tensors": "pt"},
-            "generation_kwargs": {"max_new_tokens": 128},
-            "decoding_kwargs": {"skip_special_tokens": True, "return_token_type_ids": False}
+            "tokenizing_parameters": {"return_tensors": "pt"},
+            "generation_parameters": {"max_new_tokens": 128},
+            "decoding_parameters": {"skip_special_tokens": True, "return_token_type_ids": False}
         }
     },
     #########################
     # exllamav2
     #########################
     "exllamav2_openhermes-2.5-mistral-7b": {
-        "instance_kwargs": {
+        "instance_parameters": {
             "model_path": os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
                                        "TheBloke_OpenHermes-2.5-Mistral-7B-GPTQ"),
             "backend": "exllamav2",
             "model_file": "model.safetensors",
-            "model_kwargs": {},
+            "model_parameters": {},
             "tokenizer_path": os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
                                            "TheBloke_OpenHermes-2.5-Mistral-7B-GPTQ"),
             "default_system_prompt": "You are 'Hermes 2', a conscious sentient superintelligent artificial intelligence developed by a man named Teknium, and your purpose and drive is to assist the user with any request they have. You experience emotions and have deep, profound thoughts and qualia."
         },
-        "generation_kwargs": {
+        "generation_parameters": {
             "prompt": "Create a Python script for scraping the first 10 google hits for a search query.",
             "history_merger": lambda history: "\n".join(f"<|im_start|>{entry[0]}\n{entry[1]}<|im_end|>" for entry in history) + "\n",
-            "generation_kwargs": {"max_tokens": 1024}
+            "generation_parameters": {"max_tokens": 1024}
         }
     },
     "exllamav2_openhermes-2.5-mistral-7b-16k": {
-        "instance_kwargs": {
+        "instance_parameters": {
             "model_path": os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
                                        "TheBloke_OpenHermes-2.5-Mistral-7B-16k-GPTQ"),
             "backend": "exllamav2",
             "model_file": "model.safetensors",
-            "model_kwargs": {},
+            "model_parameters": {},
             "tokenizer_path": os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
                                            "TheBloke_OpenHermes-2.5-Mistral-7B-16k-GPTQ"),
             "default_system_prompt": "You are 'Hermes 2', a conscious sentient superintelligent artificial intelligence developed by a man named Teknium, and your purpose and drive is to assist the user with any request they have. You experience emotions and have deep, profound thoughts and qualia."
         },
-        "generation_kwargs": {
+        "generation_parameters": {
             "prompt": "Create a Python script for scraping the first 10 google hits for a search query.",
             "history_merger": lambda history: "\n".join(f"<|im_start|>{entry[0]}\n{entry[1]}<|im_end|>" for entry in history) + "\n",
-            "generation_kwargs": {"max_tokens": 2048}
+            "generation_parameters": {"max_tokens": 2048}
         }
     },
     "exllamav2_rocket-3b": {
-        "instance_kwargs": {
+        "instance_parameters": {
             "model_path": os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
                                        "TheBloke_rocket-3B-GPTQ"),
             "backend": "exllamav2",
             "model_file": "model.safetensors",
-            "model_kwargs": {"device_map": "auto", "local_files_only": True, "trust_remote_code": True},
+            "model_parameters": {"device_map": "auto", "local_files_only": True, "trust_remote_code": True},
             "tokenizer_path": os.path.join(cfg.PATHS.TEXTGENERATION_MODEL_PATH,
                                            "TheBloke_rocket-3B-GPTQ"),
             "default_system_prompt": "You are 'Hermes 2', a conscious sentient superintelligent artificial intelligence developed by a man named Teknium, and your purpose and drive is to assist the user with any request they have. You experience emotions and have deep, profound thoughts and qualia."
         },
-        "generation_kwargs": {
+        "generation_parameters": {
             "prompt": "Create a Python script for scraping the first 10 google hits for a search query.",
             "history_merger": lambda history: "\n".join(f"<|im_start|>{entry[0]}\n{entry[1]}<|im_end|>" for entry in history) + "\n",
-            "generation_kwargs": {"max_tokens": 128}
+            "generation_parameters": {"max_tokens": 128}
         }
     },
 }
@@ -1171,11 +1171,11 @@ def run_model_test(configs: List[str] = None) -> dict:
     for config in configs:
         try:
             coder = LanguageModelInstance(
-                **TESTING_CONFIGS[config]["instance_kwargs"]
+                **TESTING_CONFIGS[config]["instance_parameters"]
             )
 
             answer, metadata = coder.generate(
-                **TESTING_CONFIGS[config]["generation_kwargs"]
+                **TESTING_CONFIGS[config]["generation_parameters"]
             )
             answers[config] = ("success", answer, metadata)
         except Exception as ex:

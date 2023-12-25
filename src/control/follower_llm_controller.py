@@ -156,16 +156,16 @@ class FollowerLLMController(BasicSQLAlchemyInterface):
                 "backend": obj.backend,
                 "model_path": obj.model_path,
                 "model_file": obj.model_file,
-                "model_kwargs": obj.model_parameters,
+                "model_parameters": obj.model_parameters,
                 "tokenizer_path": obj.tokenizer_path,
-                "tokenizer_kwargs": obj.tokenizer_parameters,
+                "tokenizer_parameters": obj.tokenizer_parameters,
                 "config_path": obj.config_path,
-                "config_kwargs": obj.config_parameters,
+                "config_parameters": obj.config_parameters,
                 "default_system_prompt": obj.default_system_prompt,
                 "use_history": obj.use_history,
-                "encoding_kwargs": obj.encoding_parameters,
-                "generating_kwargs": obj.generating_parameters,
-                "decoding_kwargs": obj.decoding_parameters
+                "encoding_parameters": obj.encoding_parameters,
+                "generating_parameters": obj.generating_parameters,
+                "decoding_parameters": obj.decoding_parameters
             }, lm_instance_id)
             self.llm_pool.start(lm_instance_id)
             self._cache["lms"][lm_instance_id]["started"] = dt.now()
