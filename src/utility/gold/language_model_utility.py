@@ -609,16 +609,22 @@ class LanguageModelInstance(object):
 
     def embed(self,
               input: str,
-              embedding_parameters: dict = None) -> List[float]:
+              encoding_parameters: dict = None,
+              embedding_parameters: dict = None,
+              ) -> List[float]:
         """
         Method for embedding an input.
         :param input: Input to embed.
-        :param embedding_paramters: Kwargs for embedding.
+        :param encoding_parameters: Kwargs for encoding as dictionary.
+            Defaults to None.
+        :param embedding_paramters: Kwargs for embedding as dictionary.
             Defaults to None.
         """
+        encoding_parameters = self.encoding_parameters if encoding_parameters is None else encoding_parameters
+        embedding_parameters = self.embedding_parameters if embedding_parameters is None else embedding_parameters
+
         if self.backend == "ctransformers":
-            # TODO: Implement embeddings for ctransformers
-            pass
+            return self.model.embed(input, **embedding_parameters)
         elif self.backend == "langchain_llamacpp":
             # TODO: Implement embeddings for langchain_llamacpp
             pass
