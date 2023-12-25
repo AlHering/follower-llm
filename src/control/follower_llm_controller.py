@@ -132,7 +132,7 @@ class FollowerLLMController(BasicSQLAlchemyInterface):
         """
         Method for loading a configured language model instance.
         :param lm_instance_id: Model instance ID.
-        :return: Config ID if process as successful.
+        :return: Model instance ID if process as successful.
         """
         lm_instance_id = str(lm_instance_id)
         if lm_instance_id in self._cache:
