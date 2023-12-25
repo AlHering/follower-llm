@@ -98,13 +98,16 @@ class LanguageModelInstance(BaseModel):
     decoding_parameters: dict
 
 
-class Config(BaseModel):
+class KnowledgebaseInstance(BaseModel):
     """
-    Dataclass for config objects.
+    Dataclass for knowledgebase objects.
     """
-    type: str
-    config: dict
-    owner_id: int
+    backend: str
+    knowledgebase_path: str
+    knowledgebase_parameters: dict
+    preprocessing_parameters: dict
+    embedding_parameters: dict
+    retrieval_parameters: dict
 
 
 """
