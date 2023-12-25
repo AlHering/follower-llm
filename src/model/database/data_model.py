@@ -154,6 +154,10 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
             Integer, ForeignKey(f"{schema}asset.id"))
         asset = relationship(
             "Asset", back_populates="files")
+        knowledgebase_id = mapped_column(
+            Integer, ForeignKey(f"{schema}kbinstance.id"))
+        knowledgebase = relationship(
+            "KBInstance", back_populates="documents")
 
     class User(base):
         """
@@ -233,6 +237,48 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
         owner = relationship(
             "User", back_populates="configs")
 
+    class KBInstance(base):
+        """
+        Config class, representing a KB instance.
+        """
+        __tablename__ = f"{schema}kbinstance"
+        __table_args__ = {
+            "comment": "KB instance table.", "extend_existing": True}
+
+        id = Column(Integer, primary_key=True, unique=True, nullable=False, autoincrement=True,
+                    comment="ID of the knowledgebase instance.")
+        backend = Column(String, nullable=False,
+                         comment="Backend of the knowledgebase instance.")
+        knowledgebase_path = Column(String, nullable=False,
+                                    comment="Path of the knowledgebase instance.")
+        knowledgebase_parameters = Column(JSON,
+                                          comment="Parameters for the knowledgebase instantiation.")
+
+        preprocessing_parameters = Column(JSON,
+                                          comment="Parameters for document preprocessing.")
+        embedding_parameters = Column(JSON,
+                                      comment="Parameters for document embedding.")
+        retrieval_parameters = Column(JSON,
+                                      comment="Parameters for the document retrieval.")
+
+        created = Column(DateTime, server_default=func.now(),
+                         comment="Timestamp of creation.")
+        updated = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
+                         comment="Timestamp of last update.")
+        inactive = Column(Boolean, nullable=False, default=False,
+                          comment="Inactivity flag.")
+
+        owner_id = mapped_column(
+            Integer, ForeignKey(f"{schema}user.id"))
+        owner = relationship(
+            "User", back_populates="configs")
+        embedding_model_instance_id = mapped_column(
+            Integer, ForeignKey(f"{schema}lminstance.id"))
+        embedding_model_instance = relationship(
+            "LMInstance")
+        documents = relationship(
+            "File", back_populates="knowledgebase")
+
     class Config(base):
         """
         Config class, representing a config.
@@ -309,7 +355,7 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
         responded = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
                            comment="Timestamp of reponse transmission.")
 
-    for dataclass in [Source, Channel, Asset, File, User, LMInstance, Config, Access, Log]:
+    for dataclass in [Source, Channel, Asset, File, User, LMInstance, KBInstance, Config, Access, Log]:
         model[dataclass.__tablename__.replace(schema, "")] = dataclass
 
     base.metadata.create_all(bind=engine)
