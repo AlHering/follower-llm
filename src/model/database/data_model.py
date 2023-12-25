@@ -187,19 +187,6 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
     class LMInstance(base):
         """
         Config class, representing a LM instance.
-                 model_path: str,
-                 model_file: str = None,
-                 model_kwargs: dict = None,
-                 tokenizer_path: str = None,
-                 tokenizer_kwargs: dict = None,
-                 config_path: str = None,
-                 config_kwargs: dict = None,
-                 default_system_prompt: str = "You are a friendly and helpful assistant answering questions based on the context provided.",
-                 use_history: bool = True,
-                 history: List[Tuple[str, str, dict]] = None,
-                 encoding_kwargs: dict = None,
-                 generating_kwargs: dict = None,
-                 decoding_kwargs: dict = None
         """
         __tablename__ = f"{schema}lminstance"
         __table_args__ = {
