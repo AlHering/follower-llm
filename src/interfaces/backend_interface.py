@@ -314,7 +314,7 @@ async def delete_document(kb_instance_id: int, file_id: int,) -> dict:
     :return: Response.
     """
     raise NotImplementedError(
-        "Endpoint for embedding document is not yet implemented.")
+        "Endpoint for deleting document embeddings is not yet implemented.")
 
 
 @BACKEND.post(Endpoints.POST_QUERY)
@@ -329,7 +329,7 @@ async def post_query(lm_instance_id: int, kb_instance_id: int, query: str, inclu
     :return: Response.
     """
     raise NotImplementedError(
-        "Endpoint for embedding document is not yet implemented.")
+        "Endpoint for posting a query is not yet implemented.")
 
 
 """
