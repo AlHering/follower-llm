@@ -155,6 +155,16 @@ class BasicSQLAlchemyInterface(object):
             session.refresh(obj)
         return getattr(obj, self.primary_keys[object_type])
 
+    def put_object(self, object_type: str, **object_attributes: Optional[Any]) -> Optional[Any]:
+        """
+        Method for putting in an object.
+        :param object_type: Target object type.
+        :param object_attributes: Object attributes.
+        :return: Object ID of added object, if adding was successful.
+        """
+        # TODO: Implement PUT-method
+        pass
+
     def patch_object(self, object_type: str, object_id: Any, **object_attributes: Optional[Any]) -> Optional[Any]:
         """
         Method for patching an object.
