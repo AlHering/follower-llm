@@ -247,7 +247,7 @@ async def get_kb_instance(kb_instance_id: int) -> dict:
 
 @BACKEND.post(Endpoints.POST_KB)
 @interface_function()
-async def post_kb_instance(kb_instance: LanguageModelInstance) -> dict:
+async def post_kb_instance(kb_instance: KnowledgebaseInstance) -> dict:
     """
     Endpoint for posting a knowledgebase instance.
     :param kb_instance: KB instance.
@@ -259,7 +259,7 @@ async def post_kb_instance(kb_instance: LanguageModelInstance) -> dict:
 
 @BACKEND.put(Endpoints.PUT_KB)
 @interface_function()
-async def put_kb_instance(kb_instance: LanguageModelInstance) -> dict:
+async def put_kb_instance(kb_instance: KnowledgebaseInstance) -> dict:
     """
     Endpoint for putting in a knowledgebase instance.
     :param kb_instance: KB instance.
@@ -271,7 +271,7 @@ async def put_kb_instance(kb_instance: LanguageModelInstance) -> dict:
 
 @BACKEND.patch(Endpoints.PATCH_KB)
 @interface_function()
-async def patch_kb_instance(kb_instance_id: int, kb_instance: LanguageModelInstance) -> dict:
+async def patch_kb_instance(kb_instance_id: int, kb_instance: KnowledgebaseInstance) -> dict:
     """
     Endpoint for patching a knowledgebase instance.
     :param kb_instance_id: KB instance ID.
