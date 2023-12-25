@@ -183,8 +183,10 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
         inactive = Column(Boolean, nullable=False, default=False,
                           comment="Inactivity flag.")
 
-        configs = relationship(
-            "Config", back_populates="owner")
+        lm_instances = relationship(
+            "LMInstance", back_populates="owner")
+        kb_instances = relationship(
+            "KBInstance", back_populates="owner")
         granted = relationship(
             "Access", back_populates="granter")
 
@@ -279,33 +281,6 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
         documents = relationship(
             "File", back_populates="knowledgebase")
 
-    class Config(base):
-        """
-        Config class, representing a config.
-        """
-        __tablename__ = f"{schema}config"
-        __table_args__ = {
-            "comment": "Config table.", "extend_existing": True}
-
-        id = Column(Integer, primary_key=True, unique=True, nullable=False, autoincrement=True,
-                    comment="ID of the config.")
-        type = Column(String, nullable=False,
-                      comment="Target object type of the file.")
-        config = Column(JSON, nullable=False,
-
-                        comment="Object configuration.")
-        created = Column(DateTime, server_default=func.now(),
-                         comment="Timestamp of creation.")
-        updated = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
-                         comment="Timestamp of last update.")
-        inactive = Column(Boolean, nullable=False, default=False,
-                          comment="Inactivity flag.")
-
-        owner_id = mapped_column(
-            Integer, ForeignKey(f"{schema}user.id"))
-        owner = relationship(
-            "User", back_populates="configs")
-
     class Access(base):
         """
         Access class, representing access rights.
@@ -355,7 +330,7 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
         responded = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
                            comment="Timestamp of reponse transmission.")
 
-    for dataclass in [Source, Channel, Asset, File, User, LMInstance, KBInstance, Config, Access, Log]:
+    for dataclass in [Source, Channel, Asset, File, User, LMInstance, KBInstance, Access, Log]:
         model[dataclass.__tablename__.replace(schema, "")] = dataclass
 
     base.metadata.create_all(bind=engine)
