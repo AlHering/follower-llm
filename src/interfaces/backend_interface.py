@@ -76,6 +76,27 @@ def interface_function() -> Optional[Any]:
 Dataclasses
 """
 
+# TODO: Allow for None values in respective fields
+
+
+class LanguageModelInstance(BaseModel):
+    """
+    Dataclass for language model instance objects.
+    """
+    backend: str
+    model_path: str
+    model_file: str
+    model_parameters: dict
+    tokenizer_path: str
+    tokenizer_parameters: dict
+    config_path: str
+    config_parameters: dict
+    default_system_prompt: str
+    use_history: bool
+    encoding_parameters: dict
+    generating_parameters: dict
+    decoding_parameters: dict
+
 
 class Config(BaseModel):
     """
@@ -87,7 +108,7 @@ class Config(BaseModel):
 
 
 """
-BACKEND ENDPOINTS
+Backend endpoint enumerator
 """
 
 
@@ -97,16 +118,22 @@ class Endpoints(str, Enum):
     """
     BASE = "/api/v1"
 
-    GET_LLMS = f"{BASE}/llms/"
+    GET_LMS = f"{BASE}/lms/"
+    GET_LM = f"{BASE}/lm/get/{{lm_instance_id}}"
+    POST_LM = f"{BASE}/lm/post"
+    PUT_LM = f"{BASE}/lm/put"
+    PATCH_LM = f"{BASE}/lm/patch/{{lm_instance_id}}"
+    DELETE_LM = f"{BASE}/lm/delete/{{lm_instance_id}}"
+
     GET_KBS = f"{BASE}/kbs/"
+    GET_KB = f"{BASE}/kb/get/{{kb_instance_id}}"
+    POST_KB = f"{BASE}/kb/post"
+    PUT_KB = f"{BASE}/kb/put"
+    PATCH_KB = f"{BASE}/kb/patch/{{kb_instance_id}}"
+    DELETE_KB = f"{BASE}/kb/delete/{{kb_instance_id}}"
 
-    GET_CONFIGS = f"{BASE}/configs"
-    CREATE_CONFIG = f"{BASE}/config/create"
-    UPDATE_CONFIG = f"{BASE}/config/update/{{kb_id}}"
-    DELETE_CONFIG = f"{BASE}/config/delete/{{kb_id}}"
-
-    UPLOAD_DOCUMENT = f"{BASE}/kbs/upload/{{kb_id}}"
-    DELETE_DOCUMENT = f"{BASE}/kbs/delete/{{doc_id}}"
+    EMBED_DOCUMENT = f"{BASE}/kbs/{{kb_instance_id}}/embed/{{file_id}}"
+    DELETE_DOCUMENT = f"{BASE}/kbs/{{kb_instance_id}}/delete/{{file_id}}"
 
     POST_QUERY = f"{BASE}/query"
 
@@ -122,123 +149,181 @@ Endpoints
 """
 
 
-@BACKEND.get(Endpoints.GET_LLMS)
+"""
+Language model instances
+"""
+
+
+@BACKEND.get(Endpoints.GET_LMS)
 @interface_function()
-async def get_llms() -> dict:
+async def get_lm_instances() -> dict:
     """
-    Endpoint for getting LLMs.
+    Endpoint for getting language model instances.
     :return: Response.
     """
     global CONTROLLER
-    return {"llms": CONTROLLER.get_objects_by_filtermasks("config", [FilterMask([["type", "==", "llm"]])])}
+    return {"lms": CONTROLLER.get_objects_by_type("lminstance")}
+
+
+@BACKEND.get(Endpoints.GET_LM)
+@interface_function()
+async def get_lm_instance(lm_instance_id: int) -> dict:
+    """
+    Endpoint for getting a language model instance.
+    :param lm_instance_id: LM instance ID.
+    :return: Response.
+    """
+    global CONTROLLER
+    return {"lm": CONTROLLER.get_object_by_id("lminstance", lm_instance_id)}
+
+
+@BACKEND.post(Endpoints.POST_LM)
+@interface_function()
+async def post_lm_instance(lm_instance: LanguageModelInstance) -> dict:
+    """
+    Endpoint for posting a language model instance.
+    :param lm_instance: LM instance.
+    :return: Response.
+    """
+    global CONTROLLER
+    return {"lm": CONTROLLER.post_object("lminstance", **dict(lm_instance))}
+
+
+@BACKEND.put(Endpoints.PUT_LM)
+@interface_function()
+async def put_lm_instance(lm_instance: LanguageModelInstance) -> dict:
+    """
+    Endpoint for putting in a language model instance.
+    :param lm_instance: LM instance.
+    :return: Response.
+    """
+    global CONTROLLER
+    return {"lm": CONTROLLER.put_object("lminstance", **dict(lm_instance))}
+
+
+@BACKEND.patch(Endpoints.PATCH_LM)
+@interface_function()
+async def patch_lm_instance(lm_instance_id: int, lm_instance: LanguageModelInstance) -> dict:
+    """
+    Endpoint for patching a language model instance.
+    :param lm_instance_id: LM instance ID.
+    :param lm_instance: LM instance.
+    :return: Response.
+    """
+    global CONTROLLER
+    return {"lm": CONTROLLER.patch_object("lminstance", lm_instance_id, **dict(lm_instance))}
+
+
+"""
+Knowledgebases
+"""
 
 
 @BACKEND.get(Endpoints.GET_KBS)
 @interface_function()
-async def get_kbs() -> dict:
+async def get_kb_instances() -> dict:
     """
-    Endpoint for getting KBs.
+    Endpoint for getting knowledgebase instances.
     :return: Response.
     """
     global CONTROLLER
-    return {"kbs": CONTROLLER.get_objects_by_filtermasks("config", [FilterMask([["type", "==", "kb"]])])}
+    return {"kbs": CONTROLLER.get_objects_by_type("kbinstance")}
 
 
-@BACKEND.get(Endpoints.GET_CONFIGS)
+@BACKEND.get(Endpoints.GET_KB)
 @interface_function()
-async def get_configs() -> dict:
+async def get_kb_instance(kb_instance_id: int) -> dict:
     """
-    Endpoint for getting configs.
+    Endpoint for getting a knowledgebase instance.
+    :param kb_instance_id: KB instance ID.
     :return: Response.
     """
     global CONTROLLER
-    return {"configs": CONTROLLER.get_objects_by_type("config")}
+    return {"kb": CONTROLLER.get_object_by_id("kbinstance", kb_instance_id)}
 
 
-@BACKEND.post(Endpoints.CREATE_CONFIG)
+@BACKEND.post(Endpoints.POST_KB)
 @interface_function()
-async def create_config(config: Config) -> dict:
+async def post_kb_instance(kb_instance: LanguageModelInstance) -> dict:
     """
-    Method for creating a config.
-    :param config: Config data.
+    Endpoint for posting a knowledgebase instance.
+    :param kb_instance: KB instance.
     :return: Response.
     """
     global CONTROLLER
-    config_id = CONTROLLER.post_object("config", **config.json())
-    return {"config_id": config_id}
+    return {"kb": CONTROLLER.post_object("kbinstance", **dict(kb_instance))}
 
 
-@BACKEND.patch(Endpoints.UPDATE_CONFIG)
+@BACKEND.put(Endpoints.PUT_KB)
 @interface_function()
-async def update_config(config_id: int, update: dict) -> dict:
+async def put_kb_instance(kb_instance: LanguageModelInstance) -> dict:
     """
-    Endpoint for updating a config.
-    :param config_id: int: Config ID.
-    :param update: Update data.
+    Endpoint for putting in a knowledgebase instance.
+    :param kb_instance: KB instance.
     :return: Response.
     """
     global CONTROLLER
-    config_id = CONTROLLER.patch_object("config", config_id, **update)
-    return {"config_id": config_id}
+    return {"kb": CONTROLLER.put_object("kbinstance", **dict(kb_instance))}
 
 
-@BACKEND.delete(Endpoints.DELETE_CONFIG)
+@BACKEND.patch(Endpoints.PATCH_KB)
 @interface_function()
-async def delete_config(config_id: int) -> dict:
+async def patch_kb_instance(kb_instance_id: int, kb_instance: LanguageModelInstance) -> dict:
     """
-    Endpoint for deleting a config.
-    :param config_id: int: Config ID.
+    Endpoint for patching a knowledgebase instance.
+    :param kb_instance_id: KB instance ID.
+    :param kb_instance: KB instance.
     :return: Response.
     """
     global CONTROLLER
-    CONTROLLER.delete_object("config", config_id)
-    return {"config_id": config_id}
+    return {"kb": CONTROLLER.patch_object("kbinstance", kb_instance_id, **dict(kb_instance))}
 
 
-@BACKEND.post(Endpoints.UPLOAD_DOCUMENT)
+"""
+Interaction
+"""
+
+
+@BACKEND.post(Endpoints.EMBED_DOCUMENT)
 @interface_function()
-async def upload_document(kb_id: int, document_content: str, document_metadata: dict = None) -> dict:
+async def embed_document(kb_instance_id: int, file_id: int,) -> dict:
     """
-    Endpoint for uploading a document.
-    :param kb_id: int: KB ID.
-    :param document_content: Document content.
-    :param document_metadata: Document metadata.
+    Endpoint for embedding a document.
+    :param kb_instance_id: KB instance ID.
+    :param file_id: File ID.
     :return: Response.
     """
-    global CONTROLLER
-    document_id = CONTROLLER.embed_document(
-        kb_id, document_content, document_metadata)
-    return {"document_id": document_id}
+    raise NotImplementedError(
+        "Endpoint for embedding document is not yet implemented.")
 
 
 @BACKEND.delete(Endpoints.DELETE_DOCUMENT)
 @interface_function()
-async def delete_document(document_id: int) -> dict:
+async def delete_document(kb_instance_id: int, file_id: int,) -> dict:
     """
-    Endpoint for deleting document.
-    :param document_id: Document ID.
+    Endpoint for deleting a document embedding.
+    :param kb_instance_id: KB instance ID.
+    :param file_id: File ID.
     :return: Response.
     """
-    global CONTROLLER
-    document_id = CONTROLLER.delete_document_embeddings(document_id)
-    return {"document_id": document_id}
+    raise NotImplementedError(
+        "Endpoint for embedding document is not yet implemented.")
 
 
 @BACKEND.post(Endpoints.POST_QUERY)
 @interface_function()
-async def post_qa_query(llm_id: int, kb_id: int, query: str, include_sources: bool = True) -> dict:
+async def post_query(lm_instance_id: int, kb_instance_id: int, query: str, include_sources: bool = True) -> dict:
     """
     Endpoint for posting document qa query.
-        :param llm_id: LLM ID.
-        :param kb_id: Knowledgebase ID.
-        :param query: Query.
-        :param include_sources: Flag declaring, whether to include sources.
-        :return: Response.
-        """
-    global CONTROLLER
-    response = CONTROLLER.forward_document_qa(
-        llm_id, kb_id, query, include_sources)
-    return {"response": response}
+    :param lm_instance_id: LM instance ID.
+    :param kb_instance_id: KB instance ID.
+    :param query: Query.
+    :param include_sources: Flag declaring, whether to include sources.
+    :return: Response.
+    """
+    raise NotImplementedError(
+        "Endpoint for embedding document is not yet implemented.")
+
 
 """
 Backend runner
