@@ -15,7 +15,7 @@ from src.utility.bronze import sqlalchemy_utility
 from src.utility.bronze.hashing_utility import hash_text_with_sha256
 from src.model.database.data_model import populate_data_instrastructure
 from src.model.language_models.llm_pool import ThreadedLLMPool
-from langchain.chains import RetrievalQA
+from src.model.knowledgebase.knowledgebase_router import spawn_knowledgebase_instance
 from src.utility.silver import embedding_utility
 from src.utility.bronze.hashing_utility import hash_text_with_sha256
 from src.utility.silver.file_system_utility import safely_create_path
@@ -60,21 +60,28 @@ class FollowerLLMController(BasicSQLAlchemyInterface):
             self.working_directory, "library")
         safely_create_path(self.knowledgebase_directory)
         safely_create_path(self.document_directory)
+        # TODO: Update default embeddings alongside new language model utility
         self.default_embedding_function = embedding_utility.LocalHuggingFaceEmbeddings(
             cfg.PATHS.INSTRUCT_XL_PATH
         )
-        self.kbs: Dict[str, KnowledgeBase] = {}
-        self.documents = {}
-        for kb in self.get_objects_by_type("knowledgebase"):
-            self.register_knowledgebase(kb.id, kb.handler, kb.persinstant_directory,
-                                        kb.meta_data, kb.embedding_instance_id, kb.implementation)
+        for kb in self.get_objects_by_type("kbinstance"):
+            self.register_knowledgebase(backend=kb.backend,
+                                        knowledgebase_path=kb.knowledgebase_path,
+                                        knowledgebase_parameters=kb.knowledgebase_parameters,
+                                        preprocessing_parameters=kb.preprocessing_parameters,
+                                        embedding_parameters=kb.embedding_parameters,
+                                        retrieval_parameters=kb.retrieval_parameters,
+                                        embedding_model_instance_id=kb.embedding_model_instance_id,
+                                        owner_id=kb.owner_id,
+                                        create_database_entry=False)
 
         # LLM infrastructure
         self.llm_pool = ThreadedLLMPool()
 
         # Cache
         self._cache = {
-            "active": {}
+            "lms": {},
+            "kbs": {}
         }
 
     """
@@ -121,7 +128,7 @@ class FollowerLLMController(BasicSQLAlchemyInterface):
         Method for running shutdown process.
         """
         self.llm_pool.stop_all()
-        while any(self.llm_pool.is_running(instance_id) for instance_id in self._cache):
+        while any(self.llm_pool.is_running(instance_id) for instance_id in self._cache["lms"]):
             sleep(2.0)
 
     """
@@ -135,12 +142,12 @@ class FollowerLLMController(BasicSQLAlchemyInterface):
         :return: Model instance ID if process as successful.
         """
         lm_instance_id = str(lm_instance_id)
-        if lm_instance_id in self._cache:
+        if lm_instance_id in self._cache["lms"]:
             if not self.llm_pool.is_running(lm_instance_id):
                 self.llm_pool.start(lm_instance_id)
-                self._cache[lm_instance_id]["restarted"] += 1
+                self._cache["lms"][lm_instance_id]["restarted"] += 1
         else:
-            self._cache[lm_instance_id] = {
+            self._cache["lms"][lm_instance_id] = {
                 "started": None,
                 "restarted": 0,
                 "accessed": 0,
@@ -164,7 +171,7 @@ class FollowerLLMController(BasicSQLAlchemyInterface):
                 "decoding_kwargs": obj.decoding_parameters
             }, lm_instance_id)
             self.llm_pool.start(lm_instance_id)
-            self._cache[lm_instance_id]["started"] = dt.now()
+            self._cache["lms"][lm_instance_id]["started"] = dt.now()
         return lm_instance_id
 
     def unload_instance(self, lm_instance_id: Union[str, int]) -> Optional[str]:
@@ -174,7 +181,7 @@ class FollowerLLMController(BasicSQLAlchemyInterface):
         :return: Config ID if process as successful.
         """
         lm_instance_id = str(lm_instance_id)
-        if lm_instance_id in self._cache:
+        if lm_instance_id in self._cache["lms"]:
             if self.llm_pool.is_running(lm_instance_id):
                 self.llm_pool.stop(lm_instance_id)
             return lm_instance_id
@@ -196,112 +203,53 @@ class FollowerLLMController(BasicSQLAlchemyInterface):
     Knowledgebase handling methods
     """
 
-    def embed_via_instance(self, config_id: Union[str, int], documents: List[str]) -> List[Any]:
-        """
-        Wrapper method for embedding via instance.
-        :param config_id: LLM config ID.
-        :param documents: List of documents to embed.
-        :return: List of embeddings.
-        """
-        embeddings = []
-        for document in documents:
-            embeddings.append(self.forward_generate(config_id, document))
-        return embeddings
-
-    def register_knowledgebase(self, kb_config_id: Union[str, int], embedding_config_id: Union[str, int]) -> str:
+    def register_knowledgebase(self,
+                               backend: str,
+                               knowledgebase_path: str,
+                               knowledgebase_parameters: dict = None,
+                               preprocessing_parameters: dict = None,
+                               embedding_parameters: dict = None,
+                               retrieval_parameters: dict = None,
+                               embedding_model_instance_id: int = None,
+                               owner_id: int = None,
+                               kb_instance_id: int = None) -> str:
         """
         Method for registering knowledgebase.
-        :param kb_config_id: Config ID for the knowledgebase.
-        :param embedding_config_id: Config ID for the embedding model.
-        :return: Config ID.
-        """
-        kb_config_id = str(kb_config_id)
-        kb_config = self.get_object("config", int(kb_config_id))
-        embedding_config_id = str(embedding_config_id)
-
-        self.load_instance(embedding_config_id)
-
-        handler = kb_config.pop("handler")
-        handler_kwargs = {
-            "peristant_directory": kb_config.pop("peristant_directory"),
-            "metadata": kb_config.pop("metadata"),
-            "base_embedding_function": None if embedding_config_id is None else lambda x: self.embed_via_instance(embedding_config_id, x),
-            "implementation": kb_config.pop("implementation")
-        }
-
-        self.kbs[kb_config_id] = {"chromadb": ChromaKnowledgeBase}[handler](
-            **handler_kwargs
-        )
-        return kb_config_id
-
-    def create_default_knowledgebase(self, sub_path: str) -> int:
-        """
-        Method for creating default knowledgebase.
-        :param sub_path: Sub path to locate knowledgebase under.
-        :return: Knowledgebase config ID.
-        """
-        kb_id = self.post_object("knowledgebase",
-                                 persistant_directory=os.path.join(self.knowledgebase_directory, sub_path))
-        self.register_knowledgebase(kb_id)
-
-    def delete_documents(self, kb_config_id: Union[str, int], document_ids: List[Any], collection: str = "base") -> None:
-        """
-        Method for deleting a document from the knowledgebase.
-        :param kb_config_id: Config ID for the knowledgebase.
-        :param document_ids: Document IDs.
-        :param collection: Collection to remove document from.
-        """
-        for document_id in document_ids:
-            self.kbs[str(kb_config_id)].delete_document(
-                document_id, collection)
-
-    def wipe_knowledgebase(self, kb_config_id: Union[str, int]) -> None:
-        """
-        Method for wiping a knowledgebase.
-        :param kb_config_id: Config ID for the knowledgebase.
-        """
-        self.kbs[str(kb_config_id)].wipe_knowledgebase()
-
-    def migrate_knowledgebase(self, source_config_id: Union[str, int], target_config_id: Union[str, int]) -> None:
-        """
-        Method for migrating knowledgebase.
-        :param source_config_id: Config ID for the knowledgebase.
-        :param target_config_id: Config ID for the knowledgebase.
-        """
-        pass
-
-    def embed_documents(self, kb_config_id: Union[str, int], documents: List[str], metadatas: List[dict] = None, ids: List[str] = None, hashes: List[str] = None, collection: str = "base", compute_metadata: bool = False) -> None:
-        """
-        Method for embedding documents.
-        :param kb_config_id: Config ID for the knowledgebase.
-        :param documents: Documents to embed.
-        :param metadatas: Metadata entries for documents.
+        :param backend: Backend of the knowledgebase instance.
+        :param knowledgebase_path: Path of the knowledgebase instance.
+        :param knowledgebase_parameters: Parameters for the knowledgebase instantiation.
             Defaults to None.
-        :param ids: Custom IDs to add. 
-            Defaults to the hash of the document contents.
-        :param hashes: Content hashes.
-            Defaults to None in which case hashes are computet.
-        :param collection: Target collection.
-            Defaults to "base".
-        :param compute_metadata: Flag for declaring, whether to compute metadata.
-            Defaults to False.
+        :param preprocessing_parameters: Parameters for document preprocessing.
+            Defaults to None.
+        :param embedding_parameters: Parameters for document embedding.
+            Defaults to None.
+        :param retrieval_parameters: Parameters for the document retrieval.
+            Defaults to None.
+        :param embedding_model_instance_id: ID of the model instance to use as default embedding model.
+            Defaults to None.
+        :param owner_id: ID of the creating user.
+            Defaults to None.
+        :param kb_instance_id: Knowledgebase instance ID.
+            Defaults to None in which case a new database entry is created.
         """
-        hashes = [hash_text_with_sha256(document.page_content)
-                  for document in documents] if hashes is None else hashes
-        for doc_index, hash in enumerate(hashes):
-            if hash not in self.documents:
-                path = os.path.join(self.document_directory, f"{hash}.bin")
-                open(os.path.join(self.document_directory, f"{hash}.bin"), "wb").write(
-                    documents[doc_index].encode("utf-8"))
-                self.documents[hash] = {
-                } if metadatas is None else metadatas[doc_index]
-                self.documents[hash]["controller_library_path"] = path
-
-        if metadatas is None:
-            metadatas = [self.documents[hash] for hash in hashes]
-
-        self.kbs[str(kb_config_id)].embed_documents(
-            collection=collection, documents=documents, metadatas=metadatas, ids=hashes if ids is None else ids)
+        kb_instance_id = self.post_object("kbinstance",
+                                          backend=backend,
+                                          knowledgebase_path=knowledgebase_path,
+                                          knowledgebase_parameters=knowledgebase_parameters,
+                                          preprocessing_parameters=preprocessing_parameters,
+                                          embedding_parameters=embedding_parameters,
+                                          retrieval_parameters=retrieval_parameters,
+                                          embedding_model_instance_id=embedding_model_instance_id,
+                                          owner_id=owner_id) if kb_instance_id is None else kb_instance_id
+        self._cache["kbs"][str(kb_instance_id)] = spawn_knowledgebase_instance(
+            backend=backend,
+            knowledgebase_path=knowledgebase_path,
+            knowledgebase_parameters=knowledgebase_parameters,
+            preprocessing_parameters=preprocessing_parameters,
+            embedding_parameters=embedding_parameters,
+            retrieval_parameters=retrieval_parameters,
+            embedding_model_instance_id=embedding_model_instance_id
+        )
 
     """
     Custom methods
