@@ -662,20 +662,6 @@ class LanguageModelInstance(object):
 
         return answer, metadata
 
-    """
-    Utility methods
-    """
-
-    def _update_config(self, config_obj: Any) -> None:
-        """
-        Method for updating the instance config from model kwargs.
-        :param config_obj: Config object.
-        """
-        if self.config_kwargs is not None:
-            self.config = config_obj
-            for key in self.config_kwargs:
-                setattr(self.config, key, self.config_kwargs[key])
-
 
 class Agent(object):
     """
