@@ -249,7 +249,7 @@ class FollowerLLMController(BasicSQLAlchemyInterface):
         )
 
     """
-    Custom methods
+    Interaction methods
     """
 
     def forward_document_qa(self, llm_id: Union[int, str], kb_id: Union[int, str], query: str, include_sources: bool = True) -> dict:
