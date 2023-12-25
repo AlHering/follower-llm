@@ -56,33 +56,40 @@ Model instantiation functions
 
 def load_ctransformers_model(model_path: str,
                              model_file: str = None,
-                             model_parameters: dict = None,
+                             model_parameters: dict = {},
                              tokenizer_path: str = None,
-                             tokenizer_parameters: dict = None,
+                             tokenizer_parameters: dict = {},
+                             embeddings_path: str = None,
+                             embeddings_parameters: dict = {},
                              config_path: str = None,
-                             config_parameters: dict = None) -> None:
+                             config_parameters: dict = {}) -> Tuple:
     """
     Function for loading ctransformers based model objects.
     :param model_path: Path to model files.
     :param model_file: Model file to load.
         Defaults to None.
     :param model_parameters: Model loading kwargs as dictionary.
-        Defaults to None.
+        Defaults to empty dictionary.
     :param tokenizer_path: Tokenizer path.
         Defaults to None.
     :param tokenizer_parameters: Tokenizer loading kwargs as dictionary.
+        Defaults to empty dictionary.
+    :param embeddings_path: Embeddings path.
         Defaults to None.
+    :param embeddings_parameters: Embeddings loading kwargs as dictionary.
+        Defaults to empty dictionary.
     :param config_path: Config path.
         Defaults to None.
     :param config_parameters: Config loading kwargs as dictionary.
-        Defaults to None.
-    :return: Tuple of config, tokenizer, model and generator object.
+        Defaults to empty dictionary.
+    :return: Tuple of config, tokenizer, embeddings, model and generator object.
         Note, that all objects that do not belong to the backend will be None.
     """
     from ctransformers import AutoConfig as CAutoConfig, AutoModelForCausalLM as CAutoModelForCausalLM, AutoTokenizer as CAutoTokenizer
 
     config = None
     tokenizer = None
+    embeddings = None
     model = None
     generator = None
 
@@ -104,38 +111,45 @@ def load_ctransformers_model(model_path: str,
             tokenizer = CAutoTokenizer.from_pretrained(
                 tokenizer_path, **tokenizer_parameters)
 
-    return (config, tokenizer, model, generator)
+    return (config, tokenizer, embeddings, model, generator)
 
 
 def load_transformers_model(model_path: str,
                             model_file: str = None,
-                            model_parameters: dict = None,
+                            model_parameters: dict = {},
                             tokenizer_path: str = None,
-                            tokenizer_parameters: dict = None,
+                            tokenizer_parameters: dict = {},
+                            embeddings_path: str = None,
+                            embeddings_parameters: dict = {},
                             config_path: str = None,
-                            config_parameters: dict = None) -> None:
+                            config_parameters: dict = {}) -> Tuple:
     """
-    Function for loading ctransformers based model objects.
+    Function for loading transformers based model objects.
     :param model_path: Path to model files.
     :param model_file: Model file to load.
         Defaults to None.
     :param model_parameters: Model loading kwargs as dictionary.
-        Defaults to None.
+        Defaults to empty dictionary.
     :param tokenizer_path: Tokenizer path.
         Defaults to None.
     :param tokenizer_parameters: Tokenizer loading kwargs as dictionary.
+        Defaults to empty dictionary.
+    :param embeddings_path: Embeddings path.
         Defaults to None.
+    :param embeddings_parameters: Embeddings loading kwargs as dictionary.
+        Defaults to empty dictionary.
     :param config_path: Config path.
         Defaults to None.
     :param config_parameters: Config loading kwargs as dictionary.
-        Defaults to None.
-    :return: Tuple of config, tokenizer, model and generator object.
+        Defaults to empty dictionary.
+    :return: Tuple of config, tokenizer, embeddings, model and generator object.
         Note, that all objects that do not belong to the backend will be None.
     """
     from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
     config = None
     tokenizer = None
+    embeddings = None
     model = None
     generator = None
 
@@ -151,32 +165,38 @@ def load_transformers_model(model_path: str,
     model = AutoModelForCausalLM.from_pretrained(
         pretrained_model_name_or_path=model_path, config=config, **model_parameters)
 
-    return (config, tokenizer, model, generator)
+    return (config, tokenizer, embeddings, model, generator)
 
 
 def load_llamacpp_model(model_path: str,
                         model_file: str = None,
-                        model_parameters: dict = None,
+                        model_parameters: dict = {},
                         tokenizer_path: str = None,
-                        tokenizer_parameters: dict = None,
+                        tokenizer_parameters: dict = {},
+                        embeddings_path: str = None,
+                        embeddings_parameters: dict = {},
                         config_path: str = None,
-                        config_parameters: dict = None) -> None:
+                        config_parameters: dict = {}) -> Tuple:
     """
-    Function for loading ctransformers based model objects.
+    Function for loading llamacpp based model objects.
     :param model_path: Path to model files.
     :param model_file: Model file to load.
         Defaults to None.
     :param model_parameters: Model loading kwargs as dictionary.
-        Defaults to None.
+        Defaults to empty dictionary.
     :param tokenizer_path: Tokenizer path.
         Defaults to None.
     :param tokenizer_parameters: Tokenizer loading kwargs as dictionary.
+        Defaults to empty dictionary.
+    :param embeddings_path: Embeddings path.
         Defaults to None.
+    :param embeddings_parameters: Embeddings loading kwargs as dictionary.
+        Defaults to empty dictionary.
     :param config_path: Config path.
         Defaults to None.
     :param config_parameters: Config loading kwargs as dictionary.
-        Defaults to None.
-    :return: Tuple of config, tokenizer, model and generator object.
+        Defaults to empty dictionary.
+    :return: Tuple of config, tokenizer, embeddings, model and generator object.
         Note, that all objects that do not belong to the backend will be None.
     """
     try:
@@ -186,38 +206,44 @@ def load_llamacpp_model(model_path: str,
 
     config = None
     tokenizer = None
+    embeddings = None
     model = None
     generator = None
 
     model = Llama(model_path=os.path.join(
         model_path, model_file), **model_parameters)
-
-    return (config, tokenizer, model, generator)
+    return (config, tokenizer, embeddings, model, generator)
 
 
 def load_autogptq_model(model_path: str,
                         model_file: str = None,
-                        model_parameters: dict = None,
+                        model_parameters: dict = {},
                         tokenizer_path: str = None,
-                        tokenizer_parameters: dict = None,
+                        tokenizer_parameters: dict = {},
+                        embeddings_path: str = None,
+                        embeddings_parameters: dict = {},
                         config_path: str = None,
-                        config_parameters: dict = None) -> None:
+                        config_parameters: dict = {}) -> Tuple:
     """
-    Function for loading ctransformers based model objects.
+    Function for loading autogptq based model objects.
     :param model_path: Path to model files.
     :param model_file: Model file to load.
         Defaults to None.
     :param model_parameters: Model loading kwargs as dictionary.
-        Defaults to None.
+        Defaults to empty dictionary.
     :param tokenizer_path: Tokenizer path.
         Defaults to None.
     :param tokenizer_parameters: Tokenizer loading kwargs as dictionary.
+        Defaults to empty dictionary.
+    :param embeddings_path: Embeddings path.
         Defaults to None.
+    :param embeddings_parameters: Embeddings loading kwargs as dictionary.
+        Defaults to empty dictionary.
     :param config_path: Config path.
         Defaults to None.
     :param config_parameters: Config loading kwargs as dictionary.
-        Defaults to None.
-    :return: Tuple of config, tokenizer, model and generator object.
+        Defaults to empty dictionary.
+    :return: Tuple of config, tokenizer, embeddings, model and generator object.
         Note, that all objects that do not belong to the backend will be None.
     """
     from transformers import AutoTokenizer
@@ -225,6 +251,7 @@ def load_autogptq_model(model_path: str,
 
     config = None
     tokenizer = None
+    embeddings = None
     model = None
     generator = None
 
@@ -232,33 +259,38 @@ def load_autogptq_model(model_path: str,
         tokenizer_path, **tokenizer_parameters) if tokenizer_path is not None else None
     model = AutoGPTQForCausalLM.from_quantized(
         model_path, **model_parameters)
-
-    return (config, tokenizer, model, generator)
+    return (config, tokenizer, embeddings, model, generator)
 
 
 def load_exllamav2_model(model_path: str,
                          model_file: str = None,
-                         model_parameters: dict = None,
+                         model_parameters: dict = {},
                          tokenizer_path: str = None,
-                         tokenizer_parameters: dict = None,
+                         tokenizer_parameters: dict = {},
+                         embeddings_path: str = None,
+                         embeddings_parameters: dict = {},
                          config_path: str = None,
-                         config_parameters: dict = None) -> None:
+                         config_parameters: dict = {}) -> Tuple:
     """
-    Function for loading ctransformers based model objects.
+    Function for loading exllama v2 based model objects.
     :param model_path: Path to model files.
     :param model_file: Model file to load.
         Defaults to None.
     :param model_parameters: Model loading kwargs as dictionary.
-        Defaults to None.
+        Defaults to empty dictionary.
     :param tokenizer_path: Tokenizer path.
         Defaults to None.
     :param tokenizer_parameters: Tokenizer loading kwargs as dictionary.
+        Defaults to empty dictionary.
+    :param embeddings_path: Embeddings path.
         Defaults to None.
+    :param embeddings_parameters: Embeddings loading kwargs as dictionary.
+        Defaults to empty dictionary.
     :param config_path: Config path.
         Defaults to None.
     :param config_parameters: Config loading kwargs as dictionary.
-        Defaults to None.
-    :return: Tuple of config, tokenizer, model and generator object.
+        Defaults to empty dictionary.
+    :return: Tuple of config, tokenizer, embeddings, model and generator object.
         Note, that all objects that do not belong to the backend will be None.
     """
     from exllamav2 import ExLlamaV2, ExLlamaV2Cache, ExLlamaV2Tokenizer, ExLlamaV2Config
@@ -266,6 +298,7 @@ def load_exllamav2_model(model_path: str,
 
     config = None
     tokenizer = None
+    embeddings = None
     model = None
     generator = None
 
@@ -284,46 +317,55 @@ def load_exllamav2_model(model_path: str,
     generator = ExLlamaV2BaseGenerator(
         model, tokenizer, cache)
 
-    return (config, tokenizer, model, generator)
+    return (config, tokenizer, embeddings, model, generator)
 
 
 def load_langchain_llamacpp_model(model_path: str,
                                   model_file: str = None,
-                                  model_parameters: dict = None,
+                                  model_parameters: dict = {},
                                   tokenizer_path: str = None,
-                                  tokenizer_parameters: dict = None,
+                                  tokenizer_parameters: dict = {},
+                                  embeddings_path: str = None,
+                                  embeddings_parameters: dict = {},
                                   config_path: str = None,
-                                  config_parameters: dict = None) -> None:
+                                  config_parameters: dict = {}) -> None:
     """
-    Function for loading ctransformers based model objects.
+    Function for loading langchain-llamacpp based model objects.
     :param model_path: Path to model files.
     :param model_file: Model file to load.
         Defaults to None.
     :param model_parameters: Model loading kwargs as dictionary.
-        Defaults to None.
+        Defaults to empty dictionary.
     :param tokenizer_path: Tokenizer path.
         Defaults to None.
     :param tokenizer_parameters: Tokenizer loading kwargs as dictionary.
+        Defaults to empty dictionary.
+    :param embeddings_path: Embeddings path.
         Defaults to None.
+    :param embeddings_parameters: Embeddings loading kwargs as dictionary.
+        Defaults to empty dictionary.
     :param config_path: Config path.
         Defaults to None.
     :param config_parameters: Config loading kwargs as dictionary.
-        Defaults to None.
-    :return: Tuple of config, tokenizer, model and generator object.
+        Defaults to empty dictionary.
+    :return: Tuple of config, tokenizer, embeddings, model and generator object.
         Note, that all objects that do not belong to the backend will be None.
     """
     from langchain.llms.llamacpp import LlamaCpp
+    from langchain.embeddings.llamacpp import LlamaCppEmbeddings
 
     config = None
     tokenizer = None
+    embeddings = None
     model = None
     generator = None
 
     if model_file is not None and not model_path.endswith(model_file):
         model_path = os.path.join(model_path, model_file)
+    embeddings = LlamaCppEmbeddings(
+        model_path=embeddings_path, **embeddings_parameters)
     model = LlamaCpp(model_path=model_path, **model_parameters)
-
-    return (config, tokenizer, model, generator)
+    return (config, tokenizer, embeddings, model, generator)
 
 
 """
@@ -534,12 +576,15 @@ class LanguageModelInstance(object):
                  model_parameters: dict = None,
                  tokenizer_path: str = None,
                  tokenizer_parameters: dict = None,
+                 embeddings_path: str = None,
+                 embeddings_parameters: dict = None,
                  config_path: str = None,
                  config_parameters: dict = None,
                  default_system_prompt: str = None,
                  use_history: bool = True,
                  history: List[Tuple[str, str, dict]] = None,
                  encoding_parameters: dict = None,
+                 embedding_parameters: dict = None,
                  generating_parameters: dict = None,
                  decoding_parameters: dict = None
                  ) -> None:
@@ -555,6 +600,10 @@ class LanguageModelInstance(object):
             Defaults to None.
         :param tokenizer_parameters: Tokenizer loading kwargs as dictionary.
             Defaults to None.
+        :param embeddings_path: Embeddings path.
+            Defaults to None.
+        :param embeddings_parameters: Embeddings loading kwargs as dictionary.
+            Defaults to None.
         :param config_path: Config path.
             Defaults to None.
         :param config_parameters: Config loading kwargs as dictionary.
@@ -566,6 +615,9 @@ class LanguageModelInstance(object):
         :param history: Interaction history as list of (<role>, <message>, <metadata>)-tuples tuples.
             Defaults to None.
         :param encoding_parameters: Kwargs for encoding in the generation process as dictionary.
+            Defaults to None in which case an empty dictionary is created and can be filled depending on the backend in the 
+            different initation methods.
+        :param embedding_paramters: Kwargs for embedding as dictionary.
             Defaults to None in which case an empty dictionary is created and can be filled depending on the backend in the 
             different initation methods.
         :param generating_parameters: Kwargs for generating in the generation process as dictionary.
@@ -583,10 +635,11 @@ class LanguageModelInstance(object):
             "intitated": dt.now()})] if history is None else history
 
         self.encoding_parameters = {} if encoding_parameters is None else encoding_parameters
+        self.embedding_parameters = {} if embedding_parameters is None else embedding_parameters
         self.generating_parameters = {} if generating_parameters is None else generating_parameters
         self.decoding_parameters = {} if decoding_parameters is None else decoding_parameters
 
-        self.config, self.tokenizer, self.model, self.generator = {
+        self.config, self.tokenizer, self.embeddings, self.model, self.generator = {
             "ctransformers": load_ctransformers_model,
             "transformers": load_transformers_model,
             "llamacpp": load_llamacpp_model,
@@ -599,6 +652,8 @@ class LanguageModelInstance(object):
             model_parameters=model_parameters,
             tokenizer_path=tokenizer_path,
             tokenizer_parameters=tokenizer_parameters,
+            embeddings_path=embeddings_path,
+            embeddings_parameters=embeddings_parameters,
             config_path=config_path,
             config_parameters=config_parameters
         )
@@ -632,14 +687,13 @@ class LanguageModelInstance(object):
             input_ids = self.tokenizer.encode(input, **encoding_parameters)
             return self.model.model.embed_tokens(input_ids)
         elif self.backend == "autogptq":
-            # TODO: Implement embeddings for autogptq
-            pass
+            input_ids = self.tokenizer.encode(input, **encoding_parameters)
+            return self.model.model.embed_tokens(input_ids)
         elif self.backend == "llamacpp":
-            # TODO: Implement embeddings for llamacpp
-            pass
+            return self.model.embed(input)
         elif self.backend == "exllamav2":
-            # TODO: Implement embeddings for exllamav2
-            pass
+            input_ids = self.tokenizer.encode(input, **encoding_parameters)
+            return self.model.model.embed_tokens(input_ids)
 
     def generate(self,
                  prompt: str,
