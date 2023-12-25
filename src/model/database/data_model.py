@@ -255,7 +255,6 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
                                     comment="Path of the knowledgebase instance.")
         knowledgebase_parameters = Column(JSON,
                                           comment="Parameters for the knowledgebase instantiation.")
-
         preprocessing_parameters = Column(JSON,
                                           comment="Parameters for document preprocessing.")
         embedding_parameters = Column(JSON,
