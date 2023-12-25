@@ -25,6 +25,7 @@ def spawn_knowledgebase_instance(*args: Optional[Any], **kwargs: Optional[Any]) 
     """
     # TODO: Research common parameter pattern for popular knowledgebase backends
     # TODO: Update interfacing and move to gold utility
+    # TODO: Support ChromaDB, SQLite-VSS, FAISS, PGVector, Qdrant, Pinecone, Redis, Langchain Vector DB Zoo(?)
     try:
         if kwargs.get("backend", args[0]) == "chromadb":
             return ChromaKnowledgeBase(peristant_directory=kwargs.get("knowledgebase_path", args[1]),
