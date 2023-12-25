@@ -63,6 +63,7 @@ class OntologyInferringKnowledgebase(KnowledgeBase):
         :param compute_additional_metadata: Flag for declaring, whether to compute additional metadata.
             Defaults to False.
         """
+        # TODO: Build and use ontology and ontology based index
         if metadatas is None:
             metadatas = [{} for _ in documents]
         if compute_additional_metadata:
