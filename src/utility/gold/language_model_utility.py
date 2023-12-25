@@ -616,7 +616,24 @@ class LanguageModelInstance(object):
         :param embedding_paramters: Kwargs for embedding.
             Defaults to None.
         """
-        pass
+        if self.backend == "ctransformers":
+            # TODO: Implement embeddings for ctransformers
+            pass
+        elif self.backend == "langchain_llamacpp":
+            # TODO: Implement embeddings for langchain_llamacpp
+            pass
+        elif self.backend == "transformers":
+            # TODO: Implement embeddings for transformers
+            pass
+        elif self.backend == "autogptq":
+            # TODO: Implement embeddings for autogptq
+            pass
+        elif self.backend == "llamacpp":
+            # TODO: Implement embeddings for llamacpp
+            pass
+        elif self.backend == "exllamav2":
+            # TODO: Implement embeddings for exllamav2
+            pass
 
     def generate(self,
                  prompt: str,
