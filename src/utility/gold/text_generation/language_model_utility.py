@@ -13,7 +13,7 @@ from typing import List, Tuple, Any, Callable, Optional, Type, Union
 from uuid import uuid4
 from datetime import datetime as dt
 from src.configuration import configuration as cfg
-from .filter_mask import FilterMask
+from ..filter_mask import FilterMask
 
 # TODO: Plan out and implement common utility.
 """

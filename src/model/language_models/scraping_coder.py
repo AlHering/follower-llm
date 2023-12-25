@@ -8,7 +8,7 @@
 
 import os
 from datetime import datetime as dt
-from src.utility.gold.language_model_utility import Agent, LanguageModelInstance
+from src.utility.gold.text_generation.language_model_utility import Agent, LanguageModelInstance
 from typing import List, Tuple, Any, Callable, Optional, Type
 
 
