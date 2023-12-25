@@ -629,8 +629,8 @@ class LanguageModelInstance(object):
             # TODO: Implement embeddings for langchain_llamacpp
             pass
         elif self.backend == "transformers":
-            # TODO: Implement embeddings for transformers
-            pass
+            input_ids = self.tokenizer.encode(input, **encoding_parameters)
+            return self.model.model.embed_tokens(input_ids)
         elif self.backend == "autogptq":
             # TODO: Implement embeddings for autogptq
             pass
