@@ -10,6 +10,10 @@ from typing import Optional, Any, Union
 from src.model.knowledgebase.abstract_knowledgebase import KnowledgeBase
 from src.model.knowledgebase.chromadb_knowledgebase import ChromaKnowledgeBase
 
+"""
+Vector DB backend overview
+------------------------------------------
+"""
 
 """
 Interfacing
