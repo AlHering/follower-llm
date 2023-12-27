@@ -13,6 +13,21 @@ from src.model.knowledgebase.chromadb_knowledgebase import ChromaKnowledgeBase
 """
 Vector DB backend overview
 ------------------------------------------
+ChromaDB
+ 
+SQLite-VSS
+ 
+FAISS
+
+PGVector
+ 
+Qdrant
+ 
+Pinecone
+
+Redis
+
+Langchain Vector DB Zoo
 """
 
 """
