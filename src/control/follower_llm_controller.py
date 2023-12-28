@@ -268,35 +268,16 @@ class FollowerLLMController(BasicSQLAlchemyInterface):
         try:
             source = connector.get_source_name()
             if source not in self._cache["cns"]:
-                self._cache["cns"][source] = []
-            if connector not in self._cache["cns"]:
-                self._cache["cns"].append(connector)
                 self._logger.info(
                     f"Registered new connector for '{source}'")
-                return True
             else:
                 self._logger.warn(
-                    f"Connector for '{source}' was already registered")
-                return False
+                    f"Connector for '{source}' was overwritten")
+            self._cache["cns"][source] = connector
+            return True
         except Exception as ex:
             self._logger.warn(
                 f"Exception appeared while trying to register an connector for '{source}': {ex}\nTrace: {traceback.format_exc()}")
-            return False
-
-    def remove_connector(self, connector: Connector) -> bool:
-        """
-        Method for removing an connector.
-        :param connector: Connector to remove.
-        :return: True, if process was successful else False.
-        """
-        try:
-            source = connector.get_source_name()
-            self._cache["cns"].get(source).remove(connector)
-            self._logger.info(
-                f"Connector for '{source}' was removed")
-            return True
-        except ValueError:
-            self._logger.warn(f"The connector could not be found")
             return False
 
     def _start_scraping_process(self, connector: Connector, target: Any, start_time: dt = None, end_time: dt = None) -> dict:
@@ -345,14 +326,15 @@ class FollowerLLMController(BasicSQLAlchemyInterface):
                 source = target.channel.source.name
             elif anchor in ["feed", "channel"]:
                 source = target.source.name
+            connector = self._cache["cns"].get(source)
 
-            if source not in self._cache["cns"] or len(self._cache["cns"][source]) == 0:
+            if source is None or connector is None:
                 reports.append(
                     {"status": "failed", "reason": f"No connector found for source '{source}'"})
                 self._logger.warn(
                     f"No connector found for source '{source}', aborting ...")
             else:
-                reports.append(self._start_scraping_process(connector=self._cache["cns"][source][0],
+                reports.append(self._start_scraping_process(connector=self._cache["cns"][source],
                                                             target=target,
                                                             start_time=start_time,
                                                             end_time=end_time))
