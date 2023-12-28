@@ -14,6 +14,7 @@ from src.configuration import configuration as cfg
 from src.utility.gold.basic_sqlalchemy_interface import BasicSQLAlchemyInterface, FilterMask as FilterMask
 from src.utility.bronze import sqlalchemy_utility
 from src.model.database.data_model import populate_data_instrastructure
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from src.model.language_models.llm_pool import ThreadedLLMPool
 from src.model.knowledgebase.knowledgebase_router import spawn_knowledgebase_instance
 from src.utility.silver import embedding_utility
@@ -280,29 +281,68 @@ class FollowerLLMController(BasicSQLAlchemyInterface):
                 f"Exception appeared while trying to register an connector for '{source}': {ex}\nTrace: {traceback.format_exc()}")
             return False
 
-    def _start_scraping_process(self, connector: Connector, target: Any, start_time: dt = None, end_time: dt = None) -> dict:
+    def _start_scraping_threads(self, connector: Connector, target_type: str, target_urls=List[str], scraping_metadata_update: dict = None) -> List[dict]:
         """
-        Method for starting a scraping process for a given target object.
-        :param connector: Connector to handle the scraping.
-        :param target: Target to scrape info for.
-        :param start_time: Timestamp for declaring a datetime as lower bound for scraping.
-            Defaults to None in which case the all available entries are scraped.
-        :param end_time: Timestamp for declaring a datetime as upper bound for scraping.
-            Defaults to None in which case the current datetime is choosen as upper bound.
+        Method for starting a scraping thread for a given target urls.
+        :param connector: Connector to use for scraping.
+        :param target_type: Target type.
+        :param target_urls: Target URLs to scrape.
+        :param scraping_metadata_update: Temporary update for scraping metadata.
+            Defaults to None.
         :return: Scraping report.
         """
-        pass
+        if target_type == "feed":
+            scraping_method = connector.scrape_feed
+        elif target_type == "channel":
+            scraping_method = connector.scrape_channel
+        elif target_type == "asset":
+            scraping_method = connector.scrape_asset
+        else:
+            return [{"status": "failed",
+                    "url": url,
+                     "reason": f"Unsupported target type."} for url in target_urls]
+
+        threads = {}
+        reports = [{"status": "failed",
+                    "url": url,
+                    "reason": f"Error in scraping process."} for url in target_urls]
+        scraping_metadata_update = {
+        } if scraping_metadata_update is None else scraping_metadata_update
+
+        with ThreadPoolExecutor(max_workers=20) as thread_executor:
+            for url in enumerate(target_urls):
+                targets = self.get_objects_by_filtermasks(
+                    target_type, [FilterMask([["url", "==", url]])])
+                if targets and targets[0].scraping_metadata is None:
+                    scraping_metadata = targets[0].scraping_metadata
+                else:
+                    scraping_metadata = {}
+                scraping_metadata.update(scraping_metadata_update)
+
+                threads[url] = thread_executor.submit(
+                    scraping_method, scraping_metadata
+                )
+
+            for future in as_completed(threads):
+                result = threads[future].result()
+                reports[target_urls.index(future)] = {
+                    "status": "successful",
+                    "url": future,
+                    "result": result
+                }
+                self.put_object(target_type, ["url"], url=url, info=result)
+        return reports
 
     """ 
     Interaction methods
     """
 
-    def scrape_by_anchor(self, anchor: str = "source", anchor_id: int = None, start_time: dt = None, end_time: dt = None) -> List[dict]:
+    def scrape_by_anchor(self, anchor: str = "source", anchor_ids: List[int] = None, start_time: dt = None, end_time: dt = None) -> List[dict]:
         """
         Method for scraping by anchor.
         :param anchor: Scraping anchor as string. Should be one of "source", "channel", "feed", "asset".
             Defaults to "source".
-        :param anchor_id: ID of the anchor to scrape.
+        :param anchor_ids: IDs of the anchor objects to scrape.
             Defaults to None in which case all available anchors are scraped.
         :param start_time: Timestamp for declaring a datetime as lower bound for scraping.
             Defaults to None in which case the all available entries are scraped.
@@ -310,35 +350,43 @@ class FollowerLLMController(BasicSQLAlchemyInterface):
             Defaults to None in which case the current datetime is choosen as upper bound.
         :return: Scraping reports.
         """
-        if anchor_id is not None:
-            targets = [self.get_object_by_id(anchor, anchor_id)]
+        self._logger.info(
+            f"Preparing scraping process for '{anchor}' with IDs '{anchor_ids}'")
+
+        scraping_metadata_update = {}
+        if start_time is not None:
+            scraping_metadata_update["start_time"] = start_time
+        if end_time is not None:
+            scraping_metadata_update["end_time"] = end_time
+
+        if anchor_ids is not None:
+            targets = [self.get_object_by_id(
+                anchor, anchor_id) for anchor_id in anchor_ids]
+            if not targets:
+                return [{"status": "failed", "reason": f"No targets found for source '{source}' and ID '{anchor_id}'"} for anchor_id in anchor_ids]
         else:
             targets = self.get_objects_by_type(anchor)
+            if not targets:
+                return [{"status": "failed", "reason": f"No targets found for source '{source}'"}]
 
-        reports = []
-        for target in targets:
-            self._logger.info(
-                f"Preparing scraping process for '{anchor}' with ID '{target.id}'")
-            source = None
-            if anchor == "source":
-                source = target.name
-            elif anchor == "asset":
-                source = target.channel.source.name
-            elif anchor in ["feed", "channel"]:
-                source = target.source.name
-            connector = self._cache["cns"].get(source)
+        source = None
+        if anchor == "source":
+            source = targets[0].name
+        elif anchor == "asset":
+            source = targets[0].channel.source.name
+        elif anchor in ["feed", "channel"]:
+            source = targets[0].source.name
+        connector = self._cache["cns"].get(source)
+        if source is None or connector is None:
+            self._logger.warn(
+                f"No connector found for source '{source}', aborting ...")
+            return [{"status": "failed", "reason": f"No connector found for source '{source}'"}]
 
-            if source is None or connector is None:
-                reports.append(
-                    {"status": "failed", "reason": f"No connector found for source '{source}'"})
-                self._logger.warn(
-                    f"No connector found for source '{source}', aborting ...")
-            else:
-                reports.append(self._start_scraping_process(connector=self._cache["cns"][source],
-                                                            target=target,
-                                                            start_time=start_time,
-                                                            end_time=end_time))
-        return reports
+        return self._start_scraping_threads(connector=connector,
+                                            target_type=anchor,
+                                            target_urls=[
+                                                target.url for target in targets],
+                                            scraping_metadata_update=scraping_metadata_update)
 
     def forward_document_qa(self, llm_id: Union[int, str], kb_id: Union[int, str], query: str, include_sources: bool = True) -> dict:
         """
