@@ -7,6 +7,7 @@
 """
 import os
 from time import sleep
+import traceback
 from datetime import datetime as dt
 from typing import Optional, Any, List, Dict, Union
 from src.configuration import configuration as cfg
@@ -41,7 +42,6 @@ class FollowerLLMController(BasicSQLAlchemyInterface):
         if not os.path.exists(self.working_directory):
             os.makedirs(self.working_directory)
         self.database_uri = f"sqlite:///{os.path.join(cfg.PATHS.DATA_PATH, 'backend.db')}" if database_uri is None else database_uri
-        self.scraping_connectors = [] if scraping_connectors is None else scraping_connectors
 
         # Database infrastructure
         super().__init__(self.working_directory, self.database_uri,
@@ -82,8 +82,11 @@ class FollowerLLMController(BasicSQLAlchemyInterface):
         # Cache
         self._cache = {
             "lms": {},
-            "kbs": {}
+            "kbs": {},
+            "cns": {}
         }
+        for connector in scraping_connectors:
+            self.register_connector(connector)
 
     """
     Setup and population methods
@@ -253,6 +256,49 @@ class FollowerLLMController(BasicSQLAlchemyInterface):
         )
 
     """
+    Scraping connector handling methods
+    """
+
+    def register_connector(self, connector: Connector) -> bool:
+        """
+        Method for registering an connector.
+        :param connector: Connector to register.
+        :return: True, if process was successful else False.
+        """
+        try:
+            source = connector.get_source_name()
+            if source not in self._cache["cns"]:
+                self._cache["cns"][source] = []
+            if connector not in self._cache["cns"]:
+                self._cache["cns"].append(connector)
+                self._logger.info(
+                    f"Registered new connector for '{source}'")
+                return True
+            else:
+                self._logger.warn(
+                    f"Connector for '{source}' was already registered")
+                return False
+        except Exception as ex:
+            self._logger.warn(
+                f"Exception appeared while trying to register an connector for '{source}': {ex}\nTrace: {traceback.format_exc()}")
+            return False
+
+    def remove_connector(self, connector: Connector) -> bool:
+        """
+        Method for removing an connector.
+        :param connector: Connector to remove.
+        :return: True, if process was successful else False.
+        """
+        try:
+            source = connector.get_source_name()
+            self._cache["cns"].get(source).remove(connector)
+            self._logger.info(
+                f"Connector for '{source}' was removed")
+            return True
+        except ValueError:
+            self._logger.warn(f"The connector could not be found")
+            return False
+    """ 
     Interaction methods
     """
 
