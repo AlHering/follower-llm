@@ -43,7 +43,7 @@ class Connector(ABC):
         """
         Method for validating the responsiblity for a URL.
         :param url: Target URL.
-        :return: True, if wrapper is responsible for URL else False.
+        :return: True, if connector is responsible for URL else False.
         """
         return urlparse(url).netloc in self.base_url
 
