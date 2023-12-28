@@ -48,21 +48,34 @@ class Connector(ABC):
         return urlparse(url).netloc in self.base_url
 
     @abstractmethod
-    def get_channel_info(self, channel_url: str, channel_metadata: dict = None) -> dict:
+    def scrape_feed(self, feed_url: str, feed_metadata: dict = None, registration_callback: Any = None) -> dict:
         """
-        Method for acquiring channel info.
+        Method for acquiring feed info and register contained channels or assets if a callback is given.
+        :param feed_url: Feed URL.
+        :param feed_metadata: Scraping metadata for feed.
+        :param registration_callback: Callback function for registering channels or assets.
+        :return: Feed info.
+        """
+        pass
+
+    @abstractmethod
+    def scrape_channel(self, channel_url: str, channel_metadata: dict = None, registration_callback: Any = None) -> dict:
+        """
+        Method for acquiring channel info and register contained assets if a callback is given.
         :param channel_url: Channel URL.
         :param channel_metadata: Scraping metadata for channel.
+        :param registration_callback: Callback function for registering assets.
         :return: Channel info.
         """
         pass
 
     @abstractmethod
-    def get_asset_info(self, asset_url: str, asset_metadata: dict = None) -> dict:
+    def scrape_asset(self, asset_url: str, asset_metadata: dict = None, registration_callback: Any = None) -> dict:
         """
-        Method for acquiring asset info.
+        Method for acquiring asset info and register contained files if a callback is given.
         :param asset_url: Asset URL.
         :param asset_metadata: Scraping metadata for asset.
+        :param registration_callback: Callback function for registering files.
         :return: Asset info.
         """
         pass
@@ -70,7 +83,7 @@ class Connector(ABC):
     @abstractmethod
     def download_asset(self, output_path: str, asset_url: str, asset_metadata: dict = None) -> bool:
         """
-        Method for downloading asset.
+        Method for downloading asset files.
         :param output_path: Output path.
         :param asset_url: Asset URL.
         :param asset_metadata: Scraping metadata for asset.
