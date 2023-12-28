@@ -252,6 +252,21 @@ class FollowerLLMController(BasicSQLAlchemyInterface):
     Interaction methods
     """
 
+    def scrape(self, anchor: str = "source", anchor_id: int = None, start_time: dt = None, end_time: dt = None) -> dict:
+        """
+        Method for scraping all available sources.
+        :param anchor: Scraping anchor as string. Should be one of "source", "channel", "feed", "asset".
+            Defaults to "source".
+        :param anchor_id: ID of the anchor to scrape.
+            Defaults to None in which case all available anchors are scraped.
+        :param start_time: Timestamp for declaring a datetime as lower bound for scraping.
+            Defaults to None in which case the all available entries are scraped.
+        :param end_time: Timestamp for declaring a datetime as upper bound for scraping.
+            Defaults to None in which case the current datetime is choosen as upper bound.
+        :return: Scraping report.
+        """
+        pass
+
     def forward_document_qa(self, llm_id: Union[int, str], kb_id: Union[int, str], query: str, include_sources: bool = True) -> dict:
         """
         Method for posting query.
