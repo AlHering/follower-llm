@@ -104,21 +104,37 @@ class ProfileConnector(Connector):
             'source': Source name.
             'base_url': Base URL.
             'authorization': Authorization key field in environment or authorization key.
+
+            'feed_info_parser': Lambda expression for extracting feed info from response content.
+                Can be given as string.
             'channel_info_parser': Lambda expression for extracting channel info from response content.
                 Can be given as string.
             'asset_info_parser': Lambda expression for extracting asset info from response content.
+                Can be given as string.
+
+            'channel_extractor': Lambda expression for extracting asset channel registration entries from response content.
+                Can be given as string.
+            'asset_extractor': Lambda expression for extracting asset asset registration entries from response content.
+                Can be given as string.
+            'file_extractor': Lambda expression for extracting asset file registration entries from response content.
                 Can be given as string.
         """
         self._logger = cfg.LOGGER
         self.profile = profile
         self.source = self.profile["source"]
         self.base_url = self.profile["base_url"]
-        self.channel_info_parser = get_lambda_function_from_string(self.profile["channel_info_parser"]) if isinstance(
-            self.profile["channel_info_parser"], str) else self.profile["channel_info_parser"]
-        self.asset_info_parser = get_lambda_function_from_string(self.profile["asset_info_parser"]) if isinstance(
-            self.profile["asset_info_parser"], str) else self.profile["asset_info_parser"]
         self.authorization = cfg.ENV.get(
             self.profile["authorization"], self.profile["authorization"])
+
+        # Info parsers
+        for parser in ["feed_info_parser", "channel_info_parser", "asset_info_parser"]:
+            setattr(self, parser, get_lambda_function_from_string(self.profile[parser]) if isinstance(
+                self.profile[parser], str) else self.profile[parser])
+
+        # Registration extractors
+        for extractor in ["channel_extractor", "asset_extractor", "file_extractor"]:
+            setattr(self, extractor, get_lambda_function_from_string(self.profile[extractor]) if isinstance(
+                self.profile[extractor], str) else self.profile[extractor])
 
     def get_source_name(self) -> str:
         """
@@ -167,28 +183,57 @@ class ProfileConnector(Connector):
         except json.JSONDecodeError:
             return html.fromstring(response.content)
 
-    def get_channel_info(self, channel_url: str, channel_metadata: dict = None) -> dict:
+    # Override
+    def scrape_feed(self, feed_url: str, feed_metadata: dict = None, channel_registration_callback: Any = None, asset_registration_callback: Any = None) -> dict:
         """
-        Method for acquiring channel info.
+        Method for acquiring feed info and register contained channels or assets if a callback is given.
+        :param feed_url: Feed URL.
+        :param feed_metadata: Scraping metadata for feed.
+        :param channel_registration_callback: Callback function for registering channels.
+        :param asset_registration_callback: Callback function for registering assets.
+        :return: Feed info.
+        """
+        html = self._build_request_from_metadata(feed_url, feed_metadata)
+        if channel_registration_callback is not None:
+            for entry in self.channel_extractor(html):
+                channel_registration_callback(entry)
+        if asset_registration_callback is not None:
+            for entry in self.asset_extractor(html):
+                asset_registration_callback(entry)
+        return self.feed_info_parser(html)
+
+    # Override
+
+    def scrape_channel(self, channel_url: str, channel_metadata: dict = None, registration_callback: Any = None) -> dict:
+        """
+        Method for acquiring channel info and register contained assets if a callback is given.
         :param channel_url: Channel URL.
         :param channel_metadata: Scraping metadata for channel.
+        :param registration_callback: Callback function for registering assets.
         :return: Channel info.
         """
-        content = self._build_request_from_metadata(
-            channel_url, channel_metadata)
-        return self.channel_info_parser(content)
+        html = self._build_request_from_metadata(channel_url, channel_metadata)
+        if registration_callback is not None:
+            for entry in self.asset_extractor(html):
+                registration_callback(entry)
+        return self.channel_info_parser(html)
 
-    def get_asset_info(self, asset_url: str, asset_metadata: dict = None) -> dict:
+    # Override
+    def scrape_asset(self, asset_url: str, asset_metadata: dict = None, registration_callback: Any = None) -> dict:
         """
-        Method for acquiring asset info.
+        Method for acquiring asset info and register contained files if a callback is given.
         :param asset_url: Asset URL.
         :param asset_metadata: Scraping metadata for asset.
+        :param registration_callback: Callback function for registering files.
         :return: Asset info.
         """
-        content = self._build_request_from_metadata(
-            asset_url, asset_metadata)
-        return self.asset_info_parser(content)
+        html = self._build_request_from_metadata(asset_url, asset_metadata)
+        if registration_callback is not None:
+            for entry in self.file_extractor(html):
+                registration_callback(entry)
+        return self.asset_info_parser(html)
 
+    # Override
     def download_asset(self, output_path: str, asset_url: str, asset_metadata: dict = None) -> bool:
         """
         Method for downloading asset.
