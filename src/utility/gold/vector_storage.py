@@ -7,6 +7,7 @@
 """
 from src.utility.bronze import langchain_utility
 from tqdm import tqdm
+from .text_generation.language_model_abstractions import LanguageModelInstance
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores.base import VectorStoreRetriever
 from langchain.docstore.document import Document
@@ -84,7 +85,10 @@ class VectorStore(abc.ABC):
         retrieval_parameters = Column(JSON,
                                       comment="Parameters for the document retrieval.")
     """
-    def __init__(backend: str,
+
+    def __init__(self,
+                 backend: str,
+                 embedding_model: LanguageModelInstance,
                  knowledgebase_path: str = None,
                  knowledgebase_parameters: dict = None,
                  preprocessing_parameters: dict = None,
@@ -93,6 +97,7 @@ class VectorStore(abc.ABC):
         """
         Initiation method.
         :param backend: Knowledgebase backend.
+        :param embedding_model: Embedding model instance.
         :param knowledgebase_path: Knowledgebase path for permanent storage on disk.
             Defaults to None.
         :param knowledgebase_parameters: Knowledgebase instantiation parameters.
@@ -104,6 +109,17 @@ class VectorStore(abc.ABC):
         :param retrieval_parameters: Retrieval parameters.
             Defaults to None.
         """
+        self.backend = backend
+        self.embedding_model = embedding_model
+        self.knowledgebase_path = knowledgebase_path
+        self.knowledgebase_parameters = {
+        } if knowledgebase_parameters is None else knowledgebase_parameters
+        self.preprocessing_parameters = {
+        } if preprocessing_parameters is None else preprocessing_parameters
+        self.embedding_parameters = {
+        } if embedding_parameters is None else embedding_parameters
+        self.retrieval_parameters = {
+        } if retrieval_parameters is None else retrieval_parameters
 
     @abc.abstractmethod
     def get_or_create_collection(self, collection: str, metadata: dict = None, embedding_function: EmbeddingFunction = None) -> Any:
