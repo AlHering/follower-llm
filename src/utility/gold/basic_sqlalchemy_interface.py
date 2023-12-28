@@ -155,15 +155,16 @@ class BasicSQLAlchemyInterface(object):
             session.refresh(obj)
         return getattr(obj, self.primary_keys[object_type])
 
-    def put_object(self, object_type: str, **object_attributes: Optional[Any]) -> Optional[Any]:
+    def put_object(self, object_type: str, reference_attributes: List[str], **object_attributes: Optional[Any]) -> Optional[Any]:
         """
         Method for putting in an object.
         :param object_type: Target object type.
+        :param reference_attributes: Reference attributes for finding already existing objects.
         :param object_attributes: Object attributes.
         :return: Object ID of added object, if adding was successful.
         """
         objs = self.get_objects_by_filtermasks(object_type,
-                                               [FilterMask([[key, "==", object_attributes[key]] for key in object_attributes])])
+                                               [FilterMask([[key, "==", object_attributes[key]] for key in reference_attributes])])
         if not objs:
             return self.post_object(object_type, **object_attributes)
         else:
