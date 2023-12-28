@@ -288,7 +288,7 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
                     comment="ID of the knowledgebase instance.")
         backend = Column(String, nullable=False,
                          comment="Backend of the knowledgebase instance.")
-        knowledgebase_path = Column(String, nullable=False,
+        knowledgebase_path = Column(String, nullable=False, unique=True,
                                     comment="Path of the knowledgebase instance.")
         knowledgebase_parameters = Column(JSON,
                                           comment="Parameters for the knowledgebase instantiation.")
