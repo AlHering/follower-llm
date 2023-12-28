@@ -17,6 +17,7 @@ from src.model.language_models.llm_pool import ThreadedLLMPool
 from src.model.knowledgebase.knowledgebase_router import spawn_knowledgebase_instance
 from src.utility.silver import embedding_utility
 from src.utility.silver.file_system_utility import safely_create_path
+from src.model.scraping.connector import Connector
 
 
 class FollowerLLMController(BasicSQLAlchemyInterface):
@@ -24,13 +25,15 @@ class FollowerLLMController(BasicSQLAlchemyInterface):
     Controller class for handling backend interface requests.
     """
 
-    def __init__(self, working_directory: str = None, database_uri: str = None) -> None:
+    def __init__(self, working_directory: str = None, database_uri: str = None, scraping_connectors: List[Connector] = None) -> None:
         """
         Initiation method.
         :param working_directory: Working directory.
             Defaults to folder 'processes' folder under standard backend data path.
         :param database_uri: Database URI.
             Defaults to 'backend.db' file under default data path.
+        :param scraping_connectors: Connectors for scraping operation.
+            Defaults to None in which case the connector list will be empty at start.
         """
         # Main instance variables
         self._logger = cfg.LOGGER
@@ -38,6 +41,7 @@ class FollowerLLMController(BasicSQLAlchemyInterface):
         if not os.path.exists(self.working_directory):
             os.makedirs(self.working_directory)
         self.database_uri = f"sqlite:///{os.path.join(cfg.PATHS.DATA_PATH, 'backend.db')}" if database_uri is None else database_uri
+        self.scraping_connectors = [] if scraping_connectors is None else scraping_connectors
 
         # Database infrastructure
         super().__init__(self.working_directory, self.database_uri,
