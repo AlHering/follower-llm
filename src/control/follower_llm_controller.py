@@ -387,23 +387,3 @@ class FollowerLLMController(BasicSQLAlchemyInterface):
                                             target_urls=[
                                                 target.url for target in targets],
                                             scraping_metadata_update=scraping_metadata_update)
-
-    def forward_document_qa(self, llm_id: Union[int, str], kb_id: Union[int, str], query: str, include_sources: bool = True) -> dict:
-        """
-        Method for posting query.
-        :param llm_id: LLM ID.
-        :param kb_id: Knowledgebase ID.
-        :param query: Query.
-        :param include_sources: Flag declaring, whether to include sources.
-        :return: Response.
-        """
-        docs = self.kbs[kb_id].get_retriever(
-        ).get_relevant_documents(query=query)
-
-        document_list = "'''" + "\n\n '''".join(
-            [doc.page_content for doc in docs]) + "'''"
-        generation_prompt = f"Answer the question '''{query}''' with the following information: \n\n {document_list}"
-
-        response = self.forward_generate(llm_id, generation_prompt)
-
-        return response, [doc.metadata for doc in docs] if include_sources else []
