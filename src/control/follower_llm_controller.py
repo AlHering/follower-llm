@@ -298,13 +298,27 @@ class FollowerLLMController(BasicSQLAlchemyInterface):
         except ValueError:
             self._logger.warn(f"The connector could not be found")
             return False
+
+    def _start_scraping_process(self, connector: Connector, target: Any, start_time: dt = None, end_time: dt = None) -> dict:
+        """
+        Method for starting a scraping process for a given target object.
+        :param connector: Connector to handle the scraping.
+        :param target: Target to scrape info for.
+        :param start_time: Timestamp for declaring a datetime as lower bound for scraping.
+            Defaults to None in which case the all available entries are scraped.
+        :param end_time: Timestamp for declaring a datetime as upper bound for scraping.
+            Defaults to None in which case the current datetime is choosen as upper bound.
+        :return: Scraping report.
+        """
+        pass
+
     """ 
     Interaction methods
     """
 
-    def scrape(self, anchor: str = "source", anchor_id: int = None, start_time: dt = None, end_time: dt = None) -> dict:
+    def scrape_by_anchor(self, anchor: str = "source", anchor_id: int = None, start_time: dt = None, end_time: dt = None) -> List[dict]:
         """
-        Method for scraping all available sources.
+        Method for scraping by anchor.
         :param anchor: Scraping anchor as string. Should be one of "source", "channel", "feed", "asset".
             Defaults to "source".
         :param anchor_id: ID of the anchor to scrape.
@@ -313,9 +327,36 @@ class FollowerLLMController(BasicSQLAlchemyInterface):
             Defaults to None in which case the all available entries are scraped.
         :param end_time: Timestamp for declaring a datetime as upper bound for scraping.
             Defaults to None in which case the current datetime is choosen as upper bound.
-        :return: Scraping report.
+        :return: Scraping reports.
         """
-        pass
+        if anchor_id is not None:
+            targets = [self.get_object_by_id(anchor, anchor_id)]
+        else:
+            targets = self.get_objects_by_type(anchor)
+
+        reports = []
+        for target in targets:
+            self._logger.info(
+                f"Preparing scraping process for '{anchor}' with ID '{target.id}'")
+            source = None
+            if anchor == "source":
+                source = target.name
+            elif anchor == "asset":
+                source = target.channel.source.name
+            elif anchor in ["feed", "channel"]:
+                source = target.source.name
+
+            if source not in self._cache["cns"] or len(self._cache["cns"][source]) == 0:
+                reports.append(
+                    {"status": "failed", "reason": f"No connector found for source '{source}'"})
+                self._logger.warn(
+                    f"No connector found for source '{source}', aborting ...")
+            else:
+                reports.append(self._start_scraping_process(connector=self._cache["cns"][source][0],
+                                                            target=target,
+                                                            start_time=start_time,
+                                                            end_time=end_time))
+        return reports
 
     def forward_document_qa(self, llm_id: Union[int, str], kb_id: Union[int, str], query: str, include_sources: bool = True) -> dict:
         """
