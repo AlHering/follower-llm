@@ -60,6 +60,8 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
 
         channels = relationship(
             "Channel", back_populates="source")
+        feeds = relationship(
+            "Feed", back_populates="source")
 
     class Channel(base):
         """
@@ -158,6 +160,36 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
             Integer, ForeignKey(f"{schema}kbinstance.id"))
         knowledgebase = relationship(
             "KBInstance", back_populates="documents")
+
+    class Feed(base):
+        """
+        Feed class, representing an source feed.
+        """
+        __tablename__ = f"{schema}feed"
+        __table_args__ = {
+            "comment": "Feed table.", "extend_existing": True}
+
+        id = Column(Integer, primary_key=True, unique=True, nullable=False, autoincrement=True,
+                    comment="ID of the feed.")
+        url = Column(String, unique=True,
+                     comment="URL for the feed.")
+        name = Column(String,
+                      comment="Display name for the feed.")
+        scraping_metadata = Column(JSON,
+                                   comment="Metadata for scraping.")
+        info = Column(JSON,
+                      comment="Metadata of the feed.")
+        created = Column(DateTime, server_default=func.now(),
+                         comment="Timestamp of creation.")
+        updated = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
+                         comment="Timestamp of last update.")
+        inactive = Column(Boolean, nullable=False, default=False,
+                          comment="Inactivity flag.")
+
+        source_id = mapped_column(
+            Integer, ForeignKey(f"{schema}source.id"))
+        source = relationship(
+            "Source", back_populates="feeds")
 
     class User(base):
         """
@@ -334,7 +366,7 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
         responded = Column(DateTime, server_default=func.now(), server_onupdate=func.now(),
                            comment="Timestamp of reponse transmission.")
 
-    for dataclass in [Source, Channel, Asset, File, User, LMInstance, KBInstance, Access, Log]:
+    for dataclass in [Source, Channel, Feed, Asset, File, User, LMInstance, KBInstance, Access, Log]:
         model[dataclass.__tablename__.replace(schema, "")] = dataclass
 
     base.metadata.create_all(bind=engine)
