@@ -152,12 +152,17 @@ class ScrapingController(BasicSQLAlchemyInterface):
             Defaults to None.
         :return: Scraping report.
         """
+        callbacks = []
         if target_type == "feed":
             scraping_method = connector.scrape_feed
+            callbacks.append(lambda x: self.registration_gateway("channel", x))
+            callbacks.append(lambda x: self.registration_gateway("asset", x))
         elif target_type == "channel":
             scraping_method = connector.scrape_channel
+            callbacks.append(lambda x: self.registration_gateway("asset", x))
         elif target_type == "asset":
             scraping_method = connector.scrape_asset
+            callbacks.append(lambda x: self.registration_gateway("file", x))
         else:
             return [{"status": "failed",
                     "url": url,
@@ -181,7 +186,7 @@ class ScrapingController(BasicSQLAlchemyInterface):
                 scraping_metadata.update(scraping_metadata_update)
 
                 threads[url] = thread_executor.submit(
-                    scraping_method, scraping_metadata
+                    scraping_method, scraping_metadata, *callbacks
                 )
 
             for future in as_completed(threads):
