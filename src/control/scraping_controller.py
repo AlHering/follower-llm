@@ -13,7 +13,7 @@ from typing import Optional, Any, List, Dict, Union
 from src.configuration import configuration as cfg
 from src.utility.gold.basic_sqlalchemy_interface import BasicSQLAlchemyInterface, FilterMask as FilterMask
 from src.utility.bronze import sqlalchemy_utility
-from src.model.database.data_model import populate_data_instrastructure
+from src.model.scraping.data_model import populate_data_instrastructure
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from src.utility.silver.file_system_utility import safely_create_path
 from src.model.scraping.connector import Connector
