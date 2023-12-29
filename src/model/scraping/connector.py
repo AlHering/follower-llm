@@ -48,12 +48,13 @@ class Connector(ABC):
         return urlparse(url).netloc in self.base_url
 
     @abstractmethod
-    def scrape_feed(self, feed_url: str, feed_metadata: dict = None, registration_callback: Any = None) -> dict:
+    def scrape_feed(self, feed_url: str, feed_metadata: dict = None, channel_registration_callback: Any = None, asset_registration_callback: Any = None) -> dict:
         """
         Method for acquiring feed info and register contained channels or assets if a callback is given.
         :param feed_url: Feed URL.
         :param feed_metadata: Scraping metadata for feed.
-        :param registration_callback: Callback function for registering channels or assets.
+        :param channel_registration_callback: Callback function for registering channels.
+        :param asset_registration_callback: Callback function for registering assets.
         :return: Feed info.
         """
         pass
