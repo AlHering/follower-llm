@@ -99,6 +99,12 @@ class ScrapingController(BasicSQLAlchemyInterface):
             self._logger.info(
                 f"Object type '{object_class}' currently has {self.get_object_count_by_type(object_class)} registered entries.")
 
+    def start_up(self) -> None:
+        """
+        Method for running startup process.
+        """
+        pass
+
     """
     Exit and shutdown methods
     """
