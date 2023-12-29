@@ -15,13 +15,15 @@ from pydantic import BaseModel
 from functools import wraps
 from src.configuration import configuration as cfg
 from src.control.follower_llm_controller import FollowerLLMController, FilterMask
+from src.control.scraping_controller import ScrapingController
 
 """
 Backend control
 """
 BACKEND = FastAPI(title="LLM Follower Backend", version="0.1",
                   description="Backend for serving LLM Follower services.")
-CONTROLLER: FollowerLLMController = FollowerLLMController()
+FOLLOWER_LLM_CONTROLLER: FollowerLLMController = FollowerLLMController()
+SCRAPING_CONTROLLER: ScrapingController = ScrapingController()
 
 
 def interface_function() -> Optional[Any]:
@@ -30,7 +32,7 @@ def interface_function() -> Optional[Any]:
     :param func: Decorated function.
     :return: Error message if status is incorrect, else function return.
     """
-    global CONTROLLER
+    global FOLLOWER_LLM_CONTROLLER
 
     def wrapper(func: Any) -> Optional[Any]:
         """
@@ -56,7 +58,7 @@ def interface_function() -> Optional[Any]:
                     "trace": traceback.format_exc()
                 }
             responded = dt.now()
-            CONTROLLER.post_object(
+            FOLLOWER_LLM_CONTROLLER.post_object(
                 "log",
                 request={
                     "function": func.__name__,
@@ -168,8 +170,8 @@ async def get_lm_instances() -> dict:
     Endpoint for getting language model instances.
     :return: Response.
     """
-    global CONTROLLER
-    return {"lms": CONTROLLER.get_objects_by_type("lminstance")}
+    global FOLLOWER_LLM_CONTROLLER
+    return {"lms": FOLLOWER_LLM_CONTROLLER.get_objects_by_type("lminstance")}
 
 
 @BACKEND.get(Endpoints.GET_LM)
@@ -180,8 +182,8 @@ async def get_lm_instance(lm_instance_id: int) -> dict:
     :param lm_instance_id: LM instance ID.
     :return: Response.
     """
-    global CONTROLLER
-    return {"lm": CONTROLLER.get_object_by_id("lminstance", lm_instance_id)}
+    global FOLLOWER_LLM_CONTROLLER
+    return {"lm": FOLLOWER_LLM_CONTROLLER.get_object_by_id("lminstance", lm_instance_id)}
 
 
 @BACKEND.post(Endpoints.POST_LM)
@@ -192,8 +194,8 @@ async def post_lm_instance(lm_instance: LanguageModelInstance) -> dict:
     :param lm_instance: LM instance.
     :return: Response.
     """
-    global CONTROLLER
-    return {"lm": CONTROLLER.post_object("lminstance", **dict(lm_instance))}
+    global FOLLOWER_LLM_CONTROLLER
+    return {"lm": FOLLOWER_LLM_CONTROLLER.post_object("lminstance", **dict(lm_instance))}
 
 
 @BACKEND.put(Endpoints.PUT_LM)
@@ -204,8 +206,8 @@ async def put_lm_instance(lm_instance: LanguageModelInstance) -> dict:
     :param lm_instance: LM instance.
     :return: Response.
     """
-    global CONTROLLER
-    return {"lm": CONTROLLER.put_object("lminstance", **dict(lm_instance))}
+    global FOLLOWER_LLM_CONTROLLER
+    return {"lm": FOLLOWER_LLM_CONTROLLER.put_object("lminstance", **dict(lm_instance))}
 
 
 @BACKEND.patch(Endpoints.PATCH_LM)
@@ -217,8 +219,8 @@ async def patch_lm_instance(lm_instance_id: int, lm_instance: LanguageModelInsta
     :param lm_instance: LM instance.
     :return: Response.
     """
-    global CONTROLLER
-    return {"lm": CONTROLLER.patch_object("lminstance", lm_instance_id, **dict(lm_instance))}
+    global FOLLOWER_LLM_CONTROLLER
+    return {"lm": FOLLOWER_LLM_CONTROLLER.patch_object("lminstance", lm_instance_id, **dict(lm_instance))}
 
 
 """
@@ -233,8 +235,8 @@ async def get_kb_instances() -> dict:
     Endpoint for getting knowledgebase instances.
     :return: Response.
     """
-    global CONTROLLER
-    return {"kbs": CONTROLLER.get_objects_by_type("kbinstance")}
+    global FOLLOWER_LLM_CONTROLLER
+    return {"kbs": FOLLOWER_LLM_CONTROLLER.get_objects_by_type("kbinstance")}
 
 
 @BACKEND.get(Endpoints.GET_KB)
@@ -245,8 +247,8 @@ async def get_kb_instance(kb_instance_id: int) -> dict:
     :param kb_instance_id: KB instance ID.
     :return: Response.
     """
-    global CONTROLLER
-    return {"kb": CONTROLLER.get_object_by_id("kbinstance", kb_instance_id)}
+    global FOLLOWER_LLM_CONTROLLER
+    return {"kb": FOLLOWER_LLM_CONTROLLER.get_object_by_id("kbinstance", kb_instance_id)}
 
 
 @BACKEND.post(Endpoints.POST_KB)
@@ -257,8 +259,8 @@ async def post_kb_instance(kb_instance: KnowledgebaseInstance) -> dict:
     :param kb_instance: KB instance.
     :return: Response.
     """
-    global CONTROLLER
-    return {"kb": CONTROLLER.post_object("kbinstance", **dict(kb_instance))}
+    global FOLLOWER_LLM_CONTROLLER
+    return {"kb": FOLLOWER_LLM_CONTROLLER.post_object("kbinstance", **dict(kb_instance))}
 
 
 @BACKEND.put(Endpoints.PUT_KB)
@@ -269,8 +271,8 @@ async def put_kb_instance(kb_instance: KnowledgebaseInstance) -> dict:
     :param kb_instance: KB instance.
     :return: Response.
     """
-    global CONTROLLER
-    return {"kb": CONTROLLER.put_object("kbinstance", **dict(kb_instance))}
+    global FOLLOWER_LLM_CONTROLLER
+    return {"kb": FOLLOWER_LLM_CONTROLLER.put_object("kbinstance", **dict(kb_instance))}
 
 
 @BACKEND.patch(Endpoints.PATCH_KB)
@@ -282,8 +284,8 @@ async def patch_kb_instance(kb_instance_id: int, kb_instance: KnowledgebaseInsta
     :param kb_instance: KB instance.
     :return: Response.
     """
-    global CONTROLLER
-    return {"kb": CONTROLLER.patch_object("kbinstance", kb_instance_id, **dict(kb_instance))}
+    global FOLLOWER_LLM_CONTROLLER
+    return {"kb": FOLLOWER_LLM_CONTROLLER.patch_object("kbinstance", kb_instance_id, **dict(kb_instance))}
 
 
 """
