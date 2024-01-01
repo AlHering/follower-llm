@@ -9,7 +9,7 @@ import os
 from time import sleep
 import traceback
 from datetime import datetime as dt
-from typing import Optional, Any, List, Dict, Union
+from typing import Optional, Any, List, Dict, Union, Tuple, Callable
 from src.configuration import configuration as cfg
 from src.utility.gold.basic_sqlalchemy_interface import BasicSQLAlchemyInterface, FilterMask as FilterMask
 from src.utility.bronze import sqlalchemy_utility
@@ -149,14 +149,11 @@ class ScrapingController(BasicSQLAlchemyInterface):
         """
         pass
 
-    def _start_scraping_threads(self, connector: Connector, target_type: str, target_urls=List[str], scraping_metadata_update: dict = None) -> List[dict]:
+    def _start_scraping_threads(self, scraping_batch: List[Tuple[Callable, Any, dict, Callable]]) -> List[dict]:
         """
-        Method for starting a scraping thread for a given target urls.
-        :param connector: Connector to use for scraping.
-        :param target_type: Target type.
-        :param target_urls: Target URLs to scrape.
-        :param scraping_metadata_update: Temporary update for scraping metadata.
-            Defaults to None.
+        Method for starting a scraping thread for a given scraping batch.
+        :param scraping_batch: List of tuples of Connector method, the scraping target object,
+            an temporary scraping
         :return: Scraping report.
         """
         callbacks = []
