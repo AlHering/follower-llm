@@ -153,58 +153,52 @@ class ScrapingController(BasicSQLAlchemyInterface):
         self.put_object(object_type, reference_attributes=[
                         "url"], **{key: object_attributes[key] for key in object_attributes if hasattr(self.model[object_type], key)})
 
-    def _start_scraping_threads(self, scraping_batch: List[Tuple[Callable, Any, dict, Callable]]) -> List[dict]:
+    def _start_scraping_threads(self, source_name: str, scraping_batch: List[Tuple[str, Any, dict, List[Callable]]]) -> List[dict]:
         """
         Method for starting a scraping thread for a given scraping batch.
-        :param scraping_batch: List of tuples of Connector method, the scraping target object,
-            an temporary scraping
+        :param source_name: Source name.
+        :param scraping_batch: List of tuples of target type, the scraping target object,
+            an scraping metadata and a list of callback functions.
         :return: Scraping report.
         """
-        callbacks = []
-        if target_type == "feed":
-            scraping_method = connector.scrape_feed
-            callbacks.append(lambda x: self.registration_gateway("channel", x))
-            callbacks.append(lambda x: self.registration_gateway("asset", x))
-        elif target_type == "channel":
-            scraping_method = connector.scrape_channel
-            callbacks.append(lambda x: self.registration_gateway("asset", x))
-        elif target_type == "asset":
-            scraping_method = connector.scrape_asset
-            callbacks.append(lambda x: self.registration_gateway("file", x))
-        else:
+        connector: Connector = self._cache["cns"].get(source_name)
+        if connector is None:
+            error = f"Could not find connector for '{source_name}'"
+            self._logger.warn(
+                error)
             return [{"status": "failed",
-                    "url": url,
-                     "reason": f"Unsupported target type."} for url in target_urls]
+                     "url": scraping_entry[1].url,
+                     "reason": error} for scraping_entry in scraping_batch]
 
-        threads = {}
+        connector_methods = {
+            "feed": connector.scrape_feed,
+            "channel": connector.scrape_channel,
+            "asset": connector.scrape_asset
+        }
+        entries = {
+            scraping_entry[1].url: scraping_entry for scraping_entry in scraping_batch
+        }
+        jobs = {}
         reports = [{"status": "failed",
-                    "url": url,
-                    "reason": f"Error in scraping process."} for url in target_urls]
-        scraping_metadata_update = {
-        } if scraping_metadata_update is None else scraping_metadata_update
+                    "url": scraping_entry[1].url,
+                    "reason": f"Error in scraping process."} for scraping_entry in scraping_batch]
 
         with ThreadPoolExecutor(max_workers=20) as thread_executor:
-            for url in enumerate(target_urls):
-                targets = self.get_objects_by_filtermasks(
-                    target_type, [FilterMask([["url", "==", url]])])
-                if targets and targets[0].scraping_metadata is None:
-                    scraping_metadata = targets[0].scraping_metadata
-                else:
-                    scraping_metadata = {}
-                scraping_metadata.update(scraping_metadata_update)
-
-                threads[url] = thread_executor.submit(
-                    scraping_method, scraping_metadata, *callbacks
+            for entry_url in enumerate(entries):
+                jobs[entry_url] = thread_executor.submit(
+                    connector_methods[entries[entry_url][0]], entry_url, entries[entry_url][2], *
+                    entries[entry_url][3]
                 )
 
-            for future in as_completed(threads):
-                result = threads[future].result()
-                reports[target_urls.index(future)] = {
+            for future in as_completed(jobs):
+                result = jobs[future].result()
+                reports[scraping_batch.index(entries[future])] = {
                     "status": "successful",
                     "url": future,
                     "result": result
                 }
-                self.put_object(target_type, ["url"], url=url, info=result)
+                self.put_object(entries[future][0], [
+                                "url"], url=future, info=result)
         return reports
 
     """ 
