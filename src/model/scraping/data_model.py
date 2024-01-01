@@ -58,10 +58,12 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
         inactive = Column(Boolean, nullable=False, default=False,
                           comment="Inactivity flag.")
 
-        channels = relationship(
-            "Channel", back_populates="source")
         feeds = relationship(
             "Feed", back_populates="source")
+        channels = relationship(
+            "Channel", back_populates="source")
+        assets = relationship(
+            "Asset", back_populates="source")
 
     class Feed(base):
         """
@@ -150,6 +152,10 @@ def populate_data_instrastructure(engine: Engine, schema: str, model: dict) -> N
 
         files = relationship(
             "File", back_populates="asset")
+        source_id = mapped_column(
+            Integer, ForeignKey(f"{schema}source.id"))
+        source = relationship(
+            "Source", back_populates="assets")
         channel_id = mapped_column(
             Integer, ForeignKey(f"{schema}channel.id"))
         channel = relationship(
