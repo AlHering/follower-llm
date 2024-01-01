@@ -8,6 +8,7 @@
 import os
 from time import sleep
 import traceback
+import copy
 from datetime import datetime as dt
 from typing import Optional, Any, List, Dict, Union, Tuple, Callable
 from src.configuration import configuration as cfg
@@ -140,35 +141,33 @@ class ScrapingController(BasicSQLAlchemyInterface):
                 f"Exception appeared while trying to register an connector for '{source}': {ex}\nTrace: {traceback.format_exc()}")
             return False
 
-    def registration_gateway(self, object_type: str, object_attributes: dict, parent_id_attribute: str = None, parent_id: int = None) -> None:
+    def registration_gateway(self, object_type: str, object_attributes: dict, source_id: int = None, parent_id_attribute: str = None, parent_id: int = None) -> None:
         """
         Method for cleaning object attributes for a given object type and registering the object.
         :param object_type: Object type.
         :param object_attributes: Object attributes.
+        :param source_id: Source ID.
+            Defaults to None.
         :param parent_id_attribute: Parent ID attribute.
+            Defaults to None.
         :param parent_id: Parent object ID.
+            Defaults to None.
         """
+        if source_id is not None:
+            object_attributes["source_id"] = source_id
         if parent_id_attribute is not None and parent_id is not None:
             object_attributes[parent_id_attribute] = parent_id
         self.put_object(object_type, reference_attributes=[
                         "url"], **{key: object_attributes[key] for key in object_attributes if hasattr(self.model[object_type], key)})
 
-    def _start_scraping_threads(self, source_name: str, scraping_batch: List[Tuple[str, Any, dict, List[Callable]]]) -> List[dict]:
+    def _start_scraping_threads(self, connector: Connector, scraping_batch: List[Tuple[str, Any, dict, List[Callable]]]) -> List[dict]:
         """
         Method for starting a scraping thread for a given scraping batch.
-        :param source_name: Source name.
+        :param connector: Connector.
         :param scraping_batch: List of tuples of target type, the scraping target object,
             an scraping metadata and a list of callback functions.
         :return: Scraping report.
         """
-        connector: Connector = self._cache["cns"].get(source_name)
-        if connector is None:
-            error = f"Could not find connector for '{source_name}'"
-            self._logger.warn(
-                error)
-            return [{"status": "failed",
-                     "url": scraping_entry[1].url,
-                     "reason": error} for scraping_entry in scraping_batch]
 
         connector_methods = {
             "feed": connector.scrape_feed,
@@ -205,11 +204,12 @@ class ScrapingController(BasicSQLAlchemyInterface):
     Interaction methods
     """
 
-    def scrape_by_anchor(self, anchor: str = "source", anchor_ids: List[int] = None, start_time: dt = None, end_time: dt = None) -> List[dict]:
+    def scrape_by_anchor(self, source_id: int, anchor: str = "feed", anchor_ids: List[int] = None, start_time: dt = None, end_time: dt = None) -> List[dict]:
         """
         Method for scraping by anchor.
-        :param anchor: Scraping anchor as string. Should be one of "source", "channel", "feed", "asset".
-            Defaults to "source".
+        :param source_id: Source ID.
+        :param anchor: Scraping anchor as string. Should be one of "feed", "channel", "asset".
+            Defaults to "feed".
         :param anchor_ids: IDs of the anchor objects to scrape.
             Defaults to None in which case all available anchors are scraped.
         :param start_time: Timestamp for declaring a datetime as lower bound for scraping.
@@ -220,12 +220,12 @@ class ScrapingController(BasicSQLAlchemyInterface):
         """
         self._logger.info(
             f"Preparing scraping process for '{anchor}' with IDs '{anchor_ids}'")
-
-        scraping_metadata_update = {}
-        if start_time is not None:
-            scraping_metadata_update["start_time"] = start_time
-        if end_time is not None:
-            scraping_metadata_update["end_time"] = end_time
+        source = self.get_object_by_id("source", source_id)
+        if source is None:
+            return [{"status": "failed",
+                     "source_url": source_id,
+                     "anchor": anchor,
+                     "reason": f"Could not find database entry for source ID '{source_id}'"}]
 
         if anchor_ids is not None:
             targets = [self.get_object_by_id(
@@ -233,25 +233,42 @@ class ScrapingController(BasicSQLAlchemyInterface):
             if not targets:
                 return [{"status": "failed", "reason": f"No targets found for source '{source}' and ID '{anchor_id}'"} for anchor_id in anchor_ids]
         else:
-            targets = self.get_objects_by_type(anchor)
+            targets = self.get_objects_by_filtermasks(
+                anchor, [FilterMask(["source_id", "==", source_id])])
             if not targets:
                 return [{"status": "failed", "reason": f"No targets found for source '{source}'"}]
 
-        source = None
-        if anchor == "source":
-            source = targets[0].name
+        connector: Connector = self._cache["cns"].get(source.name)
+        if connector is None:
+            return [{"status": "failed",
+                    "source_name": source.name,
+                     "source_url": source.url,
+                     "target_type": anchor,
+                     "reason": f"Could not find connector for target source"}]
+
+        scraping_metadata_update = {}
+        if start_time is not None:
+            scraping_metadata_update["start_time"] = start_time
+        if end_time is not None:
+            scraping_metadata_update["end_time"] = end_time
+
+        if anchor == "feed":
+            callbacks = [lambda _, object_attributes: self.registration_gateway("channel", object_attributes, source_id),
+                         lambda _, object_attributes: self.registration_gateway("asset", object_attributes, source_id)]
+        elif anchor == "channel":
+            callbacks = [lambda parent_id, object_attributes: self.registration_gateway(
+                "asset", object_attributes, source_id, "channel_id", parent_id)]
         elif anchor == "asset":
-            source = targets[0].channel.source.name
-        elif anchor in ["feed", "channel"]:
-            source = targets[0].source.name
-        connector = self._cache["cns"].get(source)
-        if source is None or connector is None:
-            self._logger.warn(
-                f"No connector found for source '{source}', aborting ...")
-            return [{"status": "failed", "reason": f"No connector found for source '{source}'"}]
+            callbacks = [lambda parent_id, object_attributes: self.registration_gateway(
+                "file", object_attributes, None, "asset_id", parent_id)]
+
+        scraping_batches = []
+        for target in targets:
+            scraping_metadata = target.scraping_metadata
+            scraping_metadata.update(scraping_metadata_update)
+
+            scraping_batches.append(
+                (anchor, target, copy.deepcopy(scraping_metadata), [lambda object_attributes: callback(target.id, object_attributes) for callback in callbacks]))
 
         return self._start_scraping_threads(connector=connector,
-                                            target_type=anchor,
-                                            target_urls=[
-                                                target.url for target in targets],
-                                            scraping_metadata_update=scraping_metadata_update)
+                                            scraping_batches=scraping_batches)
