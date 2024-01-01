@@ -140,14 +140,18 @@ class ScrapingController(BasicSQLAlchemyInterface):
                 f"Exception appeared while trying to register an connector for '{source}': {ex}\nTrace: {traceback.format_exc()}")
             return False
 
-    def registration_gateway(self, object_type: str, object_attributes: dict, parent_id: int = None) -> None:
+    def registration_gateway(self, object_type: str, object_attributes: dict, parent_id_attribute: str = None, parent_id: int = None) -> None:
         """
         Method for cleaning object attributes for a given object type and registering the object.
         :param object_type: Object type.
         :param object_attributes: Object attributes.
+        :param parent_id_attribute: Parent ID attribute.
         :param parent_id: Parent object ID.
         """
-        pass
+        if parent_id_attribute is not None and parent_id is not None:
+            object_attributes[parent_id_attribute] = parent_id
+        self.put_object(object_type, reference_attributes=[
+                        "url"], **{key: object_attributes[key] for key in object_attributes if hasattr(self.model[object_type], key)})
 
     def _start_scraping_threads(self, scraping_batch: List[Tuple[Callable, Any, dict, Callable]]) -> List[dict]:
         """
